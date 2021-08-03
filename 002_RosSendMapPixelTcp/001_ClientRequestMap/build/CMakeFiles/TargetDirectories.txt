@@ -1,0 +1,7 @@
+/home/idea/Documents/Code/Cpp/002_RosSendMapPixelTcp/001_ClientRequestMap/build/CMakeFiles/install/strip.dir
+/home/idea/Documents/Code/Cpp/002_RosSendMapPixelTcp/001_ClientRequestMap/build/CMakeFiles/edit_cache.dir
+/home/idea/Documents/Code/Cpp/002_RosSendMapPixelTcp/001_ClientRequestMap/build/CMakeFiles/main.dir
+/home/idea/Documents/Code/Cpp/002_RosSendMapPixelTcp/001_ClientRequestMap/build/CMakeFiles/rebuild_cache.dir
+/home/idea/Documents/Code/Cpp/002_RosSendMapPixelTcp/001_ClientRequestMap/build/CMakeFiles/list_install_components.dir
+/home/idea/Documents/Code/Cpp/002_RosSendMapPixelTcp/001_ClientRequestMap/build/CMakeFiles/install/local.dir
+/home/idea/Documents/Code/Cpp/002_RosSendMapPixelTcp/001_ClientRequestMap/build/CMakeFiles/install.dir
