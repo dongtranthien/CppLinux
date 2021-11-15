@@ -1,0 +1,1 @@
+/usr/bin/c++     CMakeFiles/ExampleProject.dir/main.cpp.o  -o ExampleProject -L/usr/local/lib -lserial -pthread 

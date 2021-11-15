@@ -43,10 +43,10 @@ RM = /usr/bin/cmake -E remove -f
 EQUALS = =
 
 # The top-level source directory on which CMake was run.
-CMAKE_SOURCE_DIR = /home/idea/Documents/Code/Cpp/002_RosSendMapPixelTcp
+CMAKE_SOURCE_DIR = /home/idea/Documents/CppLinux/002_RosSendMapPixelTcp
 
 # The top-level build directory on which CMake was run.
-CMAKE_BINARY_DIR = /home/idea/Documents/Code/Cpp/002_RosSendMapPixelTcp/buid
+CMAKE_BINARY_DIR = /home/idea/Documents/CppLinux/002_RosSendMapPixelTcp/buid
 
 # Utility rule file for std_msgs_generate_messages_py.
 
@@ -67,6 +67,6 @@ CMakeFiles/std_msgs_generate_messages_py.dir/clean:
 .PHONY : CMakeFiles/std_msgs_generate_messages_py.dir/clean
 
 CMakeFiles/std_msgs_generate_messages_py.dir/depend:
-	cd /home/idea/Documents/Code/Cpp/002_RosSendMapPixelTcp/buid && $(CMAKE_COMMAND) -E cmake_depends "Unix Makefiles" /home/idea/Documents/Code/Cpp/002_RosSendMapPixelTcp /home/idea/Documents/Code/Cpp/002_RosSendMapPixelTcp /home/idea/Documents/Code/Cpp/002_RosSendMapPixelTcp/buid /home/idea/Documents/Code/Cpp/002_RosSendMapPixelTcp/buid /home/idea/Documents/Code/Cpp/002_RosSendMapPixelTcp/buid/CMakeFiles/std_msgs_generate_messages_py.dir/DependInfo.cmake --color=$(COLOR)
+	cd /home/idea/Documents/CppLinux/002_RosSendMapPixelTcp/buid && $(CMAKE_COMMAND) -E cmake_depends "Unix Makefiles" /home/idea/Documents/CppLinux/002_RosSendMapPixelTcp /home/idea/Documents/CppLinux/002_RosSendMapPixelTcp /home/idea/Documents/CppLinux/002_RosSendMapPixelTcp/buid /home/idea/Documents/CppLinux/002_RosSendMapPixelTcp/buid /home/idea/Documents/CppLinux/002_RosSendMapPixelTcp/buid/CMakeFiles/std_msgs_generate_messages_py.dir/DependInfo.cmake --color=$(COLOR)
 .PHONY : CMakeFiles/std_msgs_generate_messages_py.dir/depend
 

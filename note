@@ -1,0 +1,4 @@
+Create folder build 
+Go to folder
+cmake.. to build(on root mode)
+make to build

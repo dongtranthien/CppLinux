@@ -1,7 +1,7 @@
-/home/idea/Documents/Code/Cpp/000_Thread/build/CMakeFiles/install/strip.dir
-/home/idea/Documents/Code/Cpp/000_Thread/build/CMakeFiles/edit_cache.dir
-/home/idea/Documents/Code/Cpp/000_Thread/build/CMakeFiles/main.dir
-/home/idea/Documents/Code/Cpp/000_Thread/build/CMakeFiles/rebuild_cache.dir
-/home/idea/Documents/Code/Cpp/000_Thread/build/CMakeFiles/list_install_components.dir
-/home/idea/Documents/Code/Cpp/000_Thread/build/CMakeFiles/install/local.dir
-/home/idea/Documents/Code/Cpp/000_Thread/build/CMakeFiles/install.dir
+/home/idea/Documents/CppLinux/000_Thread/build/CMakeFiles/install/strip.dir
+/home/idea/Documents/CppLinux/000_Thread/build/CMakeFiles/edit_cache.dir
+/home/idea/Documents/CppLinux/000_Thread/build/CMakeFiles/main.dir
+/home/idea/Documents/CppLinux/000_Thread/build/CMakeFiles/rebuild_cache.dir
+/home/idea/Documents/CppLinux/000_Thread/build/CMakeFiles/list_install_components.dir
+/home/idea/Documents/CppLinux/000_Thread/build/CMakeFiles/install/local.dir
+/home/idea/Documents/CppLinux/000_Thread/build/CMakeFiles/install.dir
