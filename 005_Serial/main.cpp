@@ -25,7 +25,7 @@ int main()
     char write_byte_1 = 'a' ;
     char write_byte_2 = 'b' ;
 
-    char read_byte_1 = 'A' ;
+    unsigned char read_byte_1 = 'A' ;
     char read_byte_2 = 'B' ;
 
     // Read a byte to the serial port using SerialPort Write() methods.
@@ -48,6 +48,52 @@ int main()
 
     }
     std::cout << "serial_port read:   " << std::to_string(read_byte_1) << std::endl ;
+
+    read_byte_1 = 'A';
+    while(read_byte_1 == 'A'){
+      try
+      {
+          // Read a byte from the serial port using SerialPort Read() methods.
+          serial_port.ReadByte(read_byte_1, timeout_milliseconds) ;
+      }
+      catch (const ReadTimeout&)
+      {
+          std::cerr << "The Read() call has timed out." << std::endl ;
+      }
+
+    }
+    std::cout << "serial_port read:   " << std::to_string(read_byte_1) << std::endl ;
+
+    read_byte_1 = 'A';
+    while(read_byte_1 == 'A'){
+      try
+      {
+          // Read a byte from the serial port using SerialPort Read() methods.
+          serial_port.ReadByte(read_byte_1, timeout_milliseconds) ;
+      }
+      catch (const ReadTimeout&)
+      {
+          std::cerr << "The Read() call has timed out." << std::endl ;
+      }
+
+    }
+    std::cout << "serial_port read:   " << std::to_string(read_byte_1) << std::endl ;
+
+    read_byte_1 = 'A';
+    while(read_byte_1 == 'A'){
+      try
+      {
+          // Read a byte from the serial port using SerialPort Read() methods.
+          serial_port.ReadByte(read_byte_1, timeout_milliseconds) ;
+      }
+      catch (const ReadTimeout&)
+      {
+          std::cerr << "The Read() call has timed out." << std::endl ;
+      }
+
+    }
+    std::cout << "serial_port read:   " << std::to_string(read_byte_1) << std::endl ;
+    std::cout << "serial_port read:   " << (int)read_byte_1 << std::endl ;
 
     read_byte_1 = 'A';
     while(read_byte_1 == 'A'){
