@@ -18,7 +18,8 @@
 
 #include "crc.h"
 
-#define DEBUG
+//#define DEBUG_SERIAL_COMMUNICATE
+#define DEBUG_ROS
 #define CYCLE_TIME_SEND_MS				20
 
 using namespace LibSerial;
@@ -95,7 +96,7 @@ void SerialCommunicate(){
 		writeBuffer.push_back((crcValue>>8)&0xff);
 		writeBuffer.push_back((crcValue>>0)&0xff);
 
-#ifdef DEBUG
+#ifdef DEBUG_SERIAL_COMMUNICATE
 		std::cout << "\nFrame Send: ";
 		for (size_t i = 0 ; i < writeBuffer.size() ; i++)
 		{
@@ -135,7 +136,7 @@ void SerialCommunicate(){
 			}
 			catch (const ReadTimeout&)
 			{
-#ifdef DEBUG
+#ifdef DEBUG_SERIAL_COMMUNICATE
 				std::cout << "\n";
 				for (size_t i = 0 ; i < read_buffer.size() ; i++)
 				{
@@ -146,7 +147,7 @@ void SerialCommunicate(){
 #endif
 			}
 
-#ifdef DEBUG
+#ifdef DEBUG_SERIAL_COMMUNICATE
 			std::cout << "\nFrame Received: ";
 			for (size_t i = 0 ; i < read_buffer.size() ; i++)
 			{
@@ -172,6 +173,21 @@ void SerialCommunicate(){
 
 void receiveVelocity(const std_msgs::String::ConstPtr& msg){
   ROS_INFO("I heard: [%s]", msg->data.c_str());
+
+	std::string s = msg->data;
+	std::string delimiter = ",";
+	int indexDelimiter = s.find(delimiter);
+	std::string velocityLeftStr = s.substr(0, indexDelimiter);
+	std::string velocityRightStr = s.substr(indexDelimiter + 1, s.length());
+
+	
+	//std::cout<<token + "-" + s;
+	velocityLeft = std::stoi(velocityLeftStr);
+	velocityRight = std::stoi(velocityRightStr);
+
+#ifdef DEBUG_ROS
+	std::cout<<"Velocity Received From Topic driverControl: " + std::to_string(velocityLeft) + "-" + std::to_string(velocityRight) + "\n";
+#endif
 }
 
 void RosRunning(){
@@ -184,7 +200,7 @@ void RosRunning(){
 
 int main(int argc, char **argv)
 {
-  ros::init(argc, argv, "listener");
+  ros::init(argc, argv, "NodeDriverCanController");
 
   std::thread t1(SerialCommunicate);
   std::thread t2(RosRunning);
