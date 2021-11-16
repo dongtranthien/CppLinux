@@ -1,6 +1,9 @@
 #include <libserial/SerialPort.h>
 #include <libserial/SerialStream.h>
 
+#include "ros/ros.h"
+#include "std_msgs/String.h"
+
 #include <iostream>
 #include <string>
 #include <cstdlib>
@@ -10,6 +13,8 @@
 #include <sys/time.h>
 #include <ctime>
 #include <chrono>
+#include <thread>
+#include <pthread.h>
 
 #include "crc.h"
 
@@ -34,8 +39,7 @@ void CheckExit(int s){
 	}
 }
 
-int main()
-{
+void SerialCommunicate(){
 	using LibSerial::SerialPort;
 	using LibSerial::SerialStream;
 
@@ -164,4 +168,28 @@ int main()
 			// Write log
 		}
 	}
+}
+
+void receiveVelocity(const std_msgs::String::ConstPtr& msg){
+  ROS_INFO("I heard: [%s]", msg->data.c_str());
+}
+
+void RosRunning(){
+  ros::NodeHandle n;
+
+  ros::Subscriber sub = n.subscribe("driverControl", 5000, receiveVelocity);
+
+  ros::spin();
+}
+
+int main(int argc, char **argv)
+{
+  ros::init(argc, argv, "listener");
+
+  std::thread t1(SerialCommunicate);
+  std::thread t2(RosRunning);
+  t1.join();
+  t2.join();
+
+  return 0;
 }
