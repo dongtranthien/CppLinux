@@ -65,8 +65,6 @@ int checkCRC(std::vector<uint8_t> msg, int length)
 		Index = CRCHi ^ element;
 		CRCHi = CRCLo ^ _auchCRCHi[Index];
 		CRCLo = _auchCRCLo[Index];
-
-		std::cout << "\nCrc Value: " + std::to_string(msgLen) + "-" + std::to_string(element) + "-" + std::to_string(Index) + "-" + std::to_string(CRCHi) + "-" + std::to_string(CRCLo);
 	}
 	_crc = (CRCHi << 8) | CRCLo;
 	return _crc;

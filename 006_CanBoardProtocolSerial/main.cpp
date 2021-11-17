@@ -158,10 +158,8 @@ void SerialCommunicate(){
 			}
 #endif
 			uint32_t timeNowMs = duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count();
-			std::cout << "\ntimeNowMs: " + std::to_string(timeNowMs);
 			
 			uint32_t timeWork = timeNowMs - timeStartSendMs;
-			std::cout << "\ntimeWork: " + std::to_string(timeWork);
 
 			if(timeWork < 20){
 				uint32_t timeDelayUs = (CYCLE_TIME_SEND_MS - timeWork)*1000;
