@@ -92,7 +92,10 @@ void SerialCommunicate(){
 		writeBuffer.push_back(0x00);
 		writeBuffer.push_back(0x00);
 		// Crc
-		int crcValue = checkCRC(dataSend, 16);
+		int crcValue = checkCRC(writeBuffer, 16);
+#ifdef DEBUG_SERIAL_COMMUNICATE
+		std::cout << "\nCrc Value: " + crcValue;
+#endif
 		writeBuffer.push_back((crcValue>>8)&0xff);
 		writeBuffer.push_back((crcValue>>0)&0xff);
 

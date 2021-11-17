@@ -4,6 +4,7 @@
 //																Author				: Tran Thien Dong																				//
 //																Date Created	: 10/04/2015																						//
 //******************************************************************************************************//
+#include <libserial/SerialPort.h>
 //******************************************************************************************************//
 const unsigned char _auchCRCHi[] = {
 				0x00, 0xC1, 0x81, 0x40, 0x01, 0xC0, 0x80, 0x41, 0x01, 0xC0, 0x80, 0x41, 0x00, 0xC1, 0x81,
@@ -48,19 +49,24 @@ const unsigned char _auchCRCLo[] = {
 //******************************************************************************************************//
 unsigned char	CRCHi = 0xFF,	CRCLo = 0x0FF, Index, msgLen;
 int _crc;
-volatile unsigned char *msgPtr;
 //******************************************************************************************************//
-int checkCRC(volatile unsigned char *msg, unsigned char length)
+//******************************************************************************************************//
+int checkCRC(std::vector<uint8_t> msg, int length)
 {
 	msgLen = length - 2;
-	msgPtr = msg;
 	CRCHi = 0xff;
 	CRCLo = 0x0ff;
+	uint8_t index = 0;
 	while(msgLen--)
 	{
-		Index = CRCHi ^ *msgPtr++;
+		uint8_t element = msg.at(index);
+		index++;
+
+		Index = CRCHi ^ element;
 		CRCHi = CRCLo ^ _auchCRCHi[Index];
 		CRCLo = _auchCRCLo[Index];
+
+		std::cout << "\nCrc Value: " + std::to_string(msgLen) + "-" + std::to_string(element) + "-" + std::to_string(Index) + "-" + std::to_string(CRCHi) + "-" + std::to_string(CRCLo);
 	}
 	_crc = (CRCHi << 8) | CRCLo;
 	return _crc;
