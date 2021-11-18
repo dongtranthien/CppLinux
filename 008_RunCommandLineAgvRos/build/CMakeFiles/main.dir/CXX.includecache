@@ -1,0 +1,16 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/home/idea/Documents/CppLinux/008_RunCommandLineAgvRos/main.cpp
+iostream
+-
+Windows.h
+-
+unistd.h
+-
+
