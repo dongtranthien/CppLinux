@@ -84,6 +84,10 @@ void TcpRunning(){
       valread = read( new_socket , buffer, 1024);
       printf("%s\n",buffer );
       printf("%d\n",valread );
+
+      if(valread == 0){
+        isClientConnect = false;
+      }
     }
   }
 }
