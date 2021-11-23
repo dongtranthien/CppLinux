@@ -18,6 +18,7 @@
 
 int controlDat = 0;
 uint32_t velocityLeft = 0, velocityRight = 0;
+int counterReceivedNoConnect = 0;
 
 void chatterCallback(const std_msgs::String::ConstPtr& msg)
 {
@@ -34,13 +35,64 @@ void ReceiveDataControlToSendDriver(const std_msgs::String::ConstPtr& msg){
 }
 
 void CalculateVelocityControlDriver(){
-  if((controlDat == 0)||(controlDat == 9)){
+  if(controlDat == 0){
     velocityLeft = 0;
     velocityRight = 0;
+    counterReceivedNoConnect = 0;
+  }
+  else if(controlDat == 9){
+    if(counterReceivedNoConnect >= 5){
+      velocityLeft = 0;
+      velocityRight = 0;
+    }
+    else{
+      counterReceivedNoConnect++;
+    }
   }
   else{
-    velocityLeft = 1;
-    velocityRight = 1;
+    counterReceivedNoConnect = 0;
+    switch(controlDat){
+      case 1:{
+        velocityLeft = 4294330676;
+        velocityRight = 4294330676;
+        break;
+      }
+      case 2:{
+        velocityLeft = 4294861193;
+        velocityRight = 106103;
+        break;
+      }
+      case 3:{
+        velocityLeft = 636620;
+        velocityRight = 636620;
+        break;
+      }
+      case 4:{
+        velocityLeft = 106103;
+        velocityRight = 4294861193;
+        break;
+      }
+      case 5:{
+        velocityLeft = 0;
+        velocityRight = 0;
+        break;
+      }
+      case 6:{
+        velocityLeft = 0;
+        velocityRight = 0;
+        break;
+      }
+      case 7:{
+        velocityLeft = 0;
+        velocityRight = 0;
+        break;
+      }
+      case 8:{
+        velocityLeft = 0;
+        velocityRight = 0;
+        break;
+      }
+    }
   }
 }
 

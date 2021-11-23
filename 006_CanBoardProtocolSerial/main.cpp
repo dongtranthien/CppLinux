@@ -61,15 +61,15 @@ void SerialCommunicate(){
 	unsigned char dataSend[BUFFER_SIZE];
 
 	while(true){
-		// Valid velocity value
-		if(velocityLeft >= velocityMax){
-			// Write log
-			velocityLeft = 0;
-		}
-		if(velocityRight >= velocityMax){
-			// Write log
-			velocityRight = 0;
-		}
+		//// Valid velocity value
+		//if(velocityLeft >= velocityMax){
+		//	// Write log
+		//	velocityLeft = 0;
+		//}
+		//if(velocityRight >= velocityMax){
+		//	// Write log
+		//	velocityRight = 0;
+		//}
 
 		DataBuffer writeBuffer;
 		// Start byte
@@ -183,8 +183,8 @@ void receiveVelocity(const std_msgs::String::ConstPtr& msg){
 
 	
 	//std::cout<<token + "-" + s;
-	velocityLeft = std::stoi(velocityLeftStr);
-	velocityRight = std::stoi(velocityRightStr);
+	velocityLeft = std::stoul(velocityLeftStr);
+	velocityRight = std::stoul(velocityRightStr);
 
 #ifdef DEBUG_ROS
 	std::cout<<"Velocity Received From Topic driverControl: " + std::to_string(velocityLeft) + "-" + std::to_string(velocityRight) + "\n";

@@ -6,13 +6,13 @@
 
 #IncludeRegexTransform: 
 
-/home/idea/Documents/Code/Cpp/002_RosSendMapPixelTcp/main.cpp
+/home/idea/Documents/CppLinux/002_RosSendMapPixelTcp/main.cpp
 ros/ros.h
-/home/idea/Documents/Code/Cpp/002_RosSendMapPixelTcp/ros/ros.h
+/home/idea/Documents/CppLinux/002_RosSendMapPixelTcp/ros/ros.h
 std_msgs/String.h
-/home/idea/Documents/Code/Cpp/002_RosSendMapPixelTcp/std_msgs/String.h
+/home/idea/Documents/CppLinux/002_RosSendMapPixelTcp/std_msgs/String.h
 nav_msgs/OccupancyGrid.h
-/home/idea/Documents/Code/Cpp/002_RosSendMapPixelTcp/nav_msgs/OccupancyGrid.h
+/home/idea/Documents/CppLinux/002_RosSendMapPixelTcp/nav_msgs/OccupancyGrid.h
 iterator
 -
 iostream
