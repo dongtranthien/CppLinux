@@ -13,6 +13,10 @@ std_msgs/String.h
 /home/idea/Documents/CppLinux/002_RosSendMapPixelTcp/std_msgs/String.h
 nav_msgs/OccupancyGrid.h
 /home/idea/Documents/CppLinux/002_RosSendMapPixelTcp/nav_msgs/OccupancyGrid.h
+geometry_msgs/Point.h
+/home/idea/Documents/CppLinux/002_RosSendMapPixelTcp/geometry_msgs/Point.h
+geometry_msgs/Quaternion.h
+/home/idea/Documents/CppLinux/002_RosSendMapPixelTcp/geometry_msgs/Quaternion.h
 iterator
 -
 iostream
