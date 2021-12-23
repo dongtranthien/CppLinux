@@ -35,12 +35,16 @@
 
 #include "crc.h"
 
-#define PORT_COMMUNICATE_WITH_APP                   2001
-#define PORT_COMMUNICATE_WITH_ROS_LAUNCH_CONTROL    2004
-#define PORT_COMMUNICATE_WITH_NODE_SEND_MAP         2005
+#define PORT_COMMUNICATE_WITH_APP                     2001
+#define PORT_COMMUNICATE_WITH_ROS_LAUNCH_CONTROL      2004
+#define PORT_COMMUNICATE_WITH_NODE_SEND_MAP           2005
+#define PORT_COMMUNICATE_WITH_NODE_SEND_LIDAR_AND_POS 2006
 
+void ThreadStartSendMapNode();
 void CommunicateWithApp();
 void CheckCommunicateWithRosLaunchControlDisconnect();
+void CheckCommunicateWithNodeSendMap();
+void CheckCommunicateWithNodeSendLidarAndPos();
 
 
 std::string exec(const char* cmd);
@@ -57,6 +61,7 @@ typedef enum{
   SERVER_FD_COMMUNICATE_WITH_APP = 0,
   SERVER_FD_COMMUNICATE_WITH_ROS_LAUNCH_CONTROL,
   SERVER_FD_COMMUNICATE_WITH_NODE_SEND_MAP,
+  SERVER_FD_COMMUNICATE_WITH_NODE_SEND_LIDAR_AND_POS,
   SERVER_FD_COMMUNICATE_TOTAL
 }ServerFileDescription;
 typedef struct{
@@ -68,7 +73,6 @@ typedef struct{
 SocketTcpParameter socketTcpParameter[SERVER_FD_COMMUNICATE_TOTAL];
 
 SocketTcpParameter InitTcpSocket(uint16_t port, uint16_t timeoutMs);
-int TcpSocketSend(ServerFileDescription type, void *buffer, size_t n);
 
 int main(int argc, char **argv)
 {
@@ -77,18 +81,24 @@ int main(int argc, char **argv)
   //socketTcpParameter[SERVER_FD_COMMUNICATE_WITH_APP] = InitTcpSocket(PORT_COMMUNICATE_WITH_APP, 0);
   socketTcpParameter[SERVER_FD_COMMUNICATE_WITH_ROS_LAUNCH_CONTROL] = InitTcpSocket(PORT_COMMUNICATE_WITH_ROS_LAUNCH_CONTROL, 100);
   socketTcpParameter[SERVER_FD_COMMUNICATE_WITH_NODE_SEND_MAP] = InitTcpSocket(PORT_COMMUNICATE_WITH_NODE_SEND_MAP, 100);
+  socketTcpParameter[SERVER_FD_COMMUNICATE_WITH_NODE_SEND_LIDAR_AND_POS] = InitTcpSocket(PORT_COMMUNICATE_WITH_NODE_SEND_LIDAR_AND_POS, 100);
 
   std::thread t1(CommunicateWithApp);
   std::thread t2(CheckCommunicateWithRosLaunchControlDisconnect);
-
+  std::thread t3(CheckCommunicateWithNodeSendMap);
+  std::thread t4(CheckCommunicateWithNodeSendLidarAndPos);
+  
   t1.join();
   t2.join();
-
-  std::cout << "Asdf";
-
-  
+  t3.join();
+  t3.join();
+  t4.join();
 
   return 0;
+}
+
+void ThreadStartSendMapNode(){
+  system("/home/idea/Documents/CppLinux/002_RosSendMapPixelTcp/buid/main");
 }
 
 void CommunicateWithApp(){
@@ -160,17 +170,33 @@ void CommunicateWithApp(){
 
       //TcpSocketSend(SERVER_FD_COMMUNICATE_WITH_APP, buffer, valread);
       
-      if(valread == 4){
-        if((buffer[0] == 0x01)&&(buffer[1] == 0x02)&&(buffer[2] == 0x02)&&(buffer[3] == 0x02)){
+      if(valread > 0){
+        //if((buffer[0] == 0x01)&&(buffer[1] == 0x02)&&(buffer[2] == 0x02)&&(buffer[3] == 0x02)){
+        if(strncmp("{StartMapping}", buffer, 14) == 0){
           //rosLaunchCommand = ROS_LAUNCH_COMMAND_MAPPING;
           send(new_socket, "Ok-App-StartMapping\n", 7, 0);
           send(socketTcpParameter[SERVER_FD_COMMUNICATE_WITH_ROS_LAUNCH_CONTROL].Socket, "RosLaunchStartMapping", 21, 0);
+          send(socketTcpParameter[SERVER_FD_COMMUNICATE_WITH_NODE_SEND_MAP].Socket, "{StartSendMap}", 14, 0);
 
         }
-        else if((buffer[0] == 0x01)&&(buffer[1] == 0x03)&&(buffer[2] == 0x02)&&(buffer[3] == 0x02)){
-          send(new_socket, "Ok-App-StopMapping\n", 7, 0);
+        //else if((buffer[0] == 0x01)&&(buffer[1] == 0x03)&&(buffer[2] == 0x02)&&(buffer[3] == 0x02)){
+        else if(strncmp("{StopMapping}", buffer, 13) == 0){
+          send(new_socket, "Ok-App-StopMapping\n", 19, 0);
+          system("rosrun map_server map_saver -f /home/idea/mapAgv/map");
           send(socketTcpParameter[SERVER_FD_COMMUNICATE_WITH_ROS_LAUNCH_CONTROL].Socket, "RosLaunchStopMapping", 20, 0);
+          send(socketTcpParameter[SERVER_FD_COMMUNICATE_WITH_NODE_SEND_MAP].Socket, "{StopSendMap}", 13, 0);
         }
+        else if(strncmp("{StartLocation}", buffer, 15) == 0){
+          send(new_socket, "Ok-App-StartLocation\n", 21, 0);
+          send(socketTcpParameter[SERVER_FD_COMMUNICATE_WITH_ROS_LAUNCH_CONTROL].Socket, "RosLaunchStartLocation", 22, 0);
+          send(socketTcpParameter[SERVER_FD_COMMUNICATE_WITH_NODE_SEND_LIDAR_AND_POS].Socket, "RosSendLidarAndPosStart", 23, 0);
+        }
+        else if(strncmp("{StopLocation}", buffer, 14) == 0){
+          send(new_socket, "Ok-App-StartLocation\n", 21, 0);
+          send(socketTcpParameter[SERVER_FD_COMMUNICATE_WITH_ROS_LAUNCH_CONTROL].Socket, "RosLaunchStopLocation", 21, 0);
+          send(socketTcpParameter[SERVER_FD_COMMUNICATE_WITH_NODE_SEND_LIDAR_AND_POS].Socket, "RosSendLidarAndPosStop", 22, 0);
+        }
+        
       }
       else if(valread == 0){
         isClientConnect = false;
@@ -212,6 +238,82 @@ void CheckCommunicateWithRosLaunchControlDisconnect(){
       if(valread == 0){
         socketTcpParameter[SERVER_FD_COMMUNICATE_WITH_ROS_LAUNCH_CONTROL].IsConnect = false;
         std::cout<<"RosLaunchControl Disconnect..\n";
+        //while(1);
+      }
+    }
+  }
+}
+
+void CheckCommunicateWithNodeSendMap(){
+  struct sockaddr_in address_t;
+  int addrlen = sizeof(address_t);
+  char buffer[1024] = {0};
+  int new_socket;
+
+  socketTcpParameter[SERVER_FD_COMMUNICATE_WITH_NODE_SEND_MAP].IsConnect = false;
+  while(true){
+    if(!socketTcpParameter[SERVER_FD_COMMUNICATE_WITH_NODE_SEND_MAP].IsConnect){
+      if ((new_socket = accept(socketTcpParameter[SERVER_FD_COMMUNICATE_WITH_NODE_SEND_MAP].ServerFd, 
+                        (struct sockaddr *)&socketTcpParameter[SERVER_FD_COMMUNICATE_WITH_NODE_SEND_MAP].Address, 
+                        (socklen_t*)&addrlen))<0)
+      {
+        //perror("accept");
+        //exit(EXIT_FAILURE);
+        
+      }
+      else{
+        socketTcpParameter[SERVER_FD_COMMUNICATE_WITH_NODE_SEND_MAP].IsConnect = true;
+        socketTcpParameter[SERVER_FD_COMMUNICATE_WITH_NODE_SEND_MAP].Socket = new_socket;
+
+        std::cout<<"NodeSendMap Connect..\n";
+      }
+    }
+    else{
+      int valread = read( new_socket , buffer, 1024);
+      printf("%s\n",buffer );
+      printf("%d\n",valread );
+
+      if(valread == 0){
+        socketTcpParameter[SERVER_FD_COMMUNICATE_WITH_NODE_SEND_MAP].IsConnect = false;
+        std::cout<<"NodeSendMap Disconnect..\n";
+        //while(1);
+      }
+    }
+  }
+}
+
+void CheckCommunicateWithNodeSendLidarAndPos(){
+  struct sockaddr_in address_t;
+  int addrlen = sizeof(address_t);
+  char buffer[1024] = {0};
+  int new_socket;
+
+  socketTcpParameter[SERVER_FD_COMMUNICATE_WITH_NODE_SEND_LIDAR_AND_POS].IsConnect = false;
+  while(true){
+    if(!socketTcpParameter[SERVER_FD_COMMUNICATE_WITH_NODE_SEND_LIDAR_AND_POS].IsConnect){
+      if ((new_socket = accept(socketTcpParameter[SERVER_FD_COMMUNICATE_WITH_NODE_SEND_LIDAR_AND_POS].ServerFd, 
+                        (struct sockaddr *)&socketTcpParameter[SERVER_FD_COMMUNICATE_WITH_NODE_SEND_LIDAR_AND_POS].Address, 
+                        (socklen_t*)&addrlen))<0)
+      {
+        //perror("accept");
+        //exit(EXIT_FAILURE);
+        
+      }
+      else{
+        socketTcpParameter[SERVER_FD_COMMUNICATE_WITH_NODE_SEND_LIDAR_AND_POS].IsConnect = true;
+        socketTcpParameter[SERVER_FD_COMMUNICATE_WITH_NODE_SEND_LIDAR_AND_POS].Socket = new_socket;
+
+        std::cout<<"NodeSendLidarAndPos Connect..\n";
+      }
+    }
+    else{
+      int valread = read( new_socket , buffer, 1024);
+      printf("%s\n",buffer );
+      printf("%d\n",valread );
+
+      if(valread == 0){
+        socketTcpParameter[SERVER_FD_COMMUNICATE_WITH_NODE_SEND_LIDAR_AND_POS].IsConnect = false;
+        std::cout<<"NodeSendLidarAndPos Disconnect..\n";
         //while(1);
       }
     }
@@ -283,10 +385,6 @@ SocketTcpParameter InitTcpSocket(uint16_t port, uint16_t timeoutMs){
 
   parameter.ServerFd = server_fd;
   return parameter;
-}
-
-int TcpSocketSend(ServerFileDescription type, void *buffer, size_t n){
-  
 }
 
 std::string exec(const char* cmd) {

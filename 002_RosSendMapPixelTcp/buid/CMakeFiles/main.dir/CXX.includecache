@@ -31,6 +31,8 @@ stdio.h
 -
 sys/socket.h
 -
+arpa/inet.h
+-
 stdlib.h
 -
 netinet/in.h
