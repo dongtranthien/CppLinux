@@ -196,6 +196,7 @@ void CommunicateWithApp(){
           send(socketTcpParameter[SERVER_FD_COMMUNICATE_WITH_ROS_LAUNCH_CONTROL].Socket, "RosLaunchStopLocation", 21, 0);
           send(socketTcpParameter[SERVER_FD_COMMUNICATE_WITH_NODE_SEND_LIDAR_AND_POS].Socket, "RosSendLidarAndPosStop", 22, 0);
         }
+        // Add ping signal from app -> to check connect/loss connect/close app
         
       }
       else if(valread == 0){
@@ -315,6 +316,18 @@ void CheckCommunicateWithNodeSendLidarAndPos(){
         socketTcpParameter[SERVER_FD_COMMUNICATE_WITH_NODE_SEND_LIDAR_AND_POS].IsConnect = false;
         std::cout<<"NodeSendLidarAndPos Disconnect..\n";
         //while(1);
+      }
+      else{
+        if(valread == 17){
+          if(strncmp(buffer, "OverDelayWaitData", 17) == 0){
+            send(socketTcpParameter[SERVER_FD_COMMUNICATE_WITH_ROS_LAUNCH_CONTROL].Socket, "RosLaunchStartLocation", 22, 0);
+          }
+        }
+        else if(valread == 28){
+          if(strncmp(buffer, "OverWaitDataWhenStartProgram", 28) == 0){
+            send(socketTcpParameter[SERVER_FD_COMMUNICATE_WITH_ROS_LAUNCH_CONTROL].Socket, "RosLaunchStartLocation", 22, 0);
+          }
+        }
       }
     }
   }

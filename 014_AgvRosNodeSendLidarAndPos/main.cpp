@@ -42,6 +42,8 @@
 #define PORT_COMMUNICATE_WITH_APP 2007
 #define PORT_COMMUNICATE_WITH_MAIN_PROCESS 2006
 
+using namespace std::chrono;
+
 typedef enum{
   SERVER_FD_COMMUNICATE_WITH_APP = 0,
   SERVER_FD_COMMUNICATE_TOTAL
@@ -57,20 +59,16 @@ bool isNeedData = false;
 std::string laserData;
 bool isReceivedLaserData = false;
 tf::StampedTransform transform;
+uint32_t timeReceivedPre;
+uint8_t delayCounter = 0;
+int sockCommunicateWithMainProcess = 0;
+uint32_t timeStartWaitingReceived;
 
 void RosRunning();
 void CommunicateWithApp();
 void CommunicateWithMainProcess();
 void ProcessLaserScannerData(const sensor_msgs::LaserScan::ConstPtr& scan);
 SocketTcpParameter InitTcpSocket(uint16_t port, uint16_t timeoutMs);
-
-
-void ProcessLaserScan(const sensor_msgs::LaserScan::ConstPtr& scan){
-  //scan->ranges[] are laser readings
-  float arraySize = scan->ranges.size();
-  std::cout<<std::to_string(arraySize) + "\n";
-  std::cout<<std::to_string(scan->angle_min) + "-" + std::to_string(scan->angle_max) + "-" + std::to_string(scan->angle_increment) + "-" + std::to_string(scan->range_min) + "-" + std::to_string(scan->range_max) + "\n";
-}
 
 int main(int argc, char **argv){
   ros::init(argc, argv, "AgvRosNodeSendLidarAndPos");
@@ -100,6 +98,11 @@ void RosRunning(){
   ros::NodeHandle node;
   tf::TransformListener listener;
 
+  milliseconds ms_t = duration_cast< milliseconds >(
+    system_clock::now().time_since_epoch()
+  );
+  timeStartWaitingReceived = ms_t.count();
+
   ros::Rate r(10.0);
   while(1){
     ros::spinOnce();
@@ -110,10 +113,10 @@ void RosRunning(){
     }
     catch (tf::TransformException ex){
       ROS_ERROR("%s",ex.what());
-      ros::Duration(1.0).sleep();
+      //ros::Duration(1.0).sleep();
     }
 
-    std::cout<<std::to_string(transform.getOrigin().x()) + "-" + std::to_string(transform.getOrigin().y()) + "-" + std::to_string(transform.getRotation().x()) + "-" + std::to_string(transform.getRotation().y()) + "-" + std::to_string(transform.getRotation().z()) + "-" + std::to_string(transform.getRotation().w()) + "\n";
+    //std::cout<<std::to_string(transform.getOrigin().x()) + "-" + std::to_string(transform.getOrigin().y()) + "-" + std::to_string(transform.getRotation().x()) + "-" + std::to_string(transform.getRotation().y()) + "-" + std::to_string(transform.getRotation().z()) + "-" + std::to_string(transform.getRotation().w()) + "\n";
 
     r.sleep();
   }
@@ -157,10 +160,41 @@ void CommunicateWithApp(){
         //send(socketTcpParameter[SERVER_FD_COMMUNICATE_WITH_APP].Socket, laserData.c_str(), laserData.length(), 0);
         if(strncmp("{RequestLaserAndPos}", buffer, 20) == 0){
           if(isReceivedLaserData){
-            printf("Send data..\n");
-            send(socketTcpParameter[SERVER_FD_COMMUNICATE_WITH_APP].Socket, laserData.c_str(), laserData.length(), 0);
+            milliseconds ms_t = duration_cast< milliseconds >(
+              system_clock::now().time_since_epoch()
+            );
+            uint32_t timeNow_t = ms_t.count();
+
+            if((timeNow_t - timeReceivedPre) > 1500){
+              if(delayCounter < 30){
+                delayCounter++;
+              }
+              else{
+                delayCounter = 0;
+                send(sockCommunicateWithMainProcess, "OverDelayWaitData", 17, 0);
+              }
+              
+              printf("Received delay...\n");
+              send(socketTcpParameter[SERVER_FD_COMMUNICATE_WITH_APP].Socket, "{LaserAndPosWaiting}", 20, 0);
+            }
+            else{
+              delayCounter = 0;
+              printf("Send data..\n");
+              send(socketTcpParameter[SERVER_FD_COMMUNICATE_WITH_APP].Socket, laserData.c_str(), laserData.length(), 0);
+            }
           }
           else{
+            milliseconds ms_t = duration_cast< milliseconds >(
+              system_clock::now().time_since_epoch()
+            );
+            uint32_t timeNow_t = ms_t.count();
+
+            if((timeNow_t - timeStartWaitingReceived) > 15000){
+              timeStartWaitingReceived = timeNow_t;
+              
+              send(sockCommunicateWithMainProcess, "OverWaitDataWhenStartProgram", 17, 0);
+            }
+
             printf("LaserAndPosWaiting..\n");
             send(socketTcpParameter[SERVER_FD_COMMUNICATE_WITH_APP].Socket, "{LaserAndPosWaiting}", 20, 0);
           }
@@ -191,6 +225,7 @@ void CommunicateWithMainProcess(){
     perror("CommunicateWithMainProcess - socket failed");
     exit(EXIT_FAILURE);
   }
+  sockCommunicateWithMainProcess = sock;
 
   serv_addr.sin_family = AF_INET;
   serv_addr.sin_port = htons(PORT_COMMUNICATE_WITH_MAIN_PROCESS);
@@ -221,7 +256,12 @@ void CommunicateWithMainProcess(){
       {
         perror("CommunicateWithMainProcess - socket failed");
         exit(EXIT_FAILURE);
+        // Upgrade ..
       }
+      else{
+        sockCommunicateWithMainProcess = sock;
+      }
+
       while (connect(sock, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0)
       {
         usleep(100000);
@@ -250,6 +290,11 @@ void ProcessLaserScannerData(const sensor_msgs::LaserScan::ConstPtr& scan){
   if(!socketTcpParameter[SERVER_FD_COMMUNICATE_WITH_APP].IsConnect) return;
 
   isReceivedLaserData = true;
+
+  milliseconds ms_t = duration_cast< milliseconds >(
+    system_clock::now().time_since_epoch()
+  );
+  timeReceivedPre = ms_t.count();
 
   tf::Quaternion q(
       transform.getRotation().x(),
