@@ -45,6 +45,7 @@ void CommunicateWithApp();
 void CheckCommunicateWithRosLaunchControlDisconnect();
 void CheckCommunicateWithNodeSendMap();
 void CheckCommunicateWithNodeSendLidarAndPos();
+void RosRunning();
 
 
 std::string exec(const char* cmd);
@@ -71,6 +72,8 @@ typedef struct{
   int Socket;
 }SocketTcpParameter;
 SocketTcpParameter socketTcpParameter[SERVER_FD_COMMUNICATE_TOTAL];
+bool isSendInitialPose = false;
+double angle, posX, posY;
 
 SocketTcpParameter InitTcpSocket(uint16_t port, uint16_t timeoutMs);
 
@@ -87,12 +90,14 @@ int main(int argc, char **argv)
   std::thread t2(CheckCommunicateWithRosLaunchControlDisconnect);
   std::thread t3(CheckCommunicateWithNodeSendMap);
   std::thread t4(CheckCommunicateWithNodeSendLidarAndPos);
+  std::thread t5(RosRunning);
   
   t1.join();
   t2.join();
   t3.join();
   t3.join();
   t4.join();
+  t5.join();
 
   return 0;
 }
@@ -195,6 +200,94 @@ void CommunicateWithApp(){
           send(new_socket, "Ok-App-StartLocation\n", 21, 0);
           send(socketTcpParameter[SERVER_FD_COMMUNICATE_WITH_ROS_LAUNCH_CONTROL].Socket, "RosLaunchStopLocation", 21, 0);
           send(socketTcpParameter[SERVER_FD_COMMUNICATE_WITH_NODE_SEND_LIDAR_AND_POS].Socket, "RosSendLidarAndPosStop", 22, 0);
+        }
+        // Add ping signal from app -> to check connect/loss connect/close app
+        else if((strncmp("{initialpose,", buffer, 13) == 0)){
+          send(new_socket, "Ok-App-initialpose\n", 19, 0);
+
+          uint8_t index_t = 13;
+          uint8_t lengthMax = 9;
+          bool isError = false;
+          char str_t[10] = {0};
+          uint8_t indexStart_t = index_t;
+          while((index_t - indexStart_t) < lengthMax){
+            if((buffer[index_t] == '-')||(buffer[index_t] == '.')||(buffer[index_t] == ',')||((buffer[index_t] >= '0')&&(buffer[index_t] <= '9'))){
+              if(buffer[index_t] == ','){
+                break;
+              }
+              str_t[index_t - indexStart_t] = buffer[index_t];
+            }
+            else{
+              // Error
+              isError = true;
+              std::cout << "Received initialpose error - angle";
+              break;
+            }
+            index_t++;
+          }
+
+          if(isError||((index_t - indexStart_t) == lengthMax)){
+            // Error
+          }
+          else{
+            angle = std::stod(str_t);
+
+            index_t++;
+            indexStart_t = index_t;
+            lengthMax = 10;
+            while((index_t - indexStart_t) < lengthMax){
+              if((buffer[index_t] == '-')||(buffer[index_t] == '.')||(buffer[index_t] == ',')||((buffer[index_t] >= '0')&&(buffer[index_t] <= '9'))){
+                if(buffer[index_t] == ','){
+                  break;
+                }
+                str_t[index_t - indexStart_t] = buffer[index_t];
+              }
+              else{
+                // Error
+                isError = true;
+                std::cout << "Received initialpose error - posX";
+                break;
+              }
+              index_t++;
+            }
+
+            if(isError||((index_t - indexStart_t) == lengthMax)){
+              // Error
+            }
+            else{
+              posX = std::stod(str_t);
+
+              index_t++;
+              indexStart_t = index_t;
+              lengthMax = 10;
+              while((index_t - indexStart_t) < lengthMax){
+                if((buffer[index_t] == '-')||(buffer[index_t] == '.')||(buffer[index_t] == '}')||((buffer[index_t] >= '0')&&(buffer[index_t] <= '9'))){
+                  if(buffer[index_t] == '}'){
+                    break;
+                  }
+                  str_t[index_t - indexStart_t] = buffer[index_t];
+                }
+                else{
+                  // Error
+                  isError = true;
+                  std::cout << "Received initialpose error - posY";
+                  break;
+                }
+                index_t++;
+              }
+
+              if(isError||((index_t - indexStart_t) == lengthMax)){
+                // Error
+              }
+              else{
+                posY = std::stod(str_t);
+
+                std::cout << "initialpose - " + std::to_string(angle) + "-" + std::to_string(posX) + "-" + std::to_string(posY);
+                isSendInitialPose = true;
+              }
+            }
+          }
+          
         }
         // Add ping signal from app -> to check connect/loss connect/close app
         
@@ -320,17 +413,58 @@ void CheckCommunicateWithNodeSendLidarAndPos(){
       else{
         if(valread == 17){
           if(strncmp(buffer, "OverDelayWaitData", 17) == 0){
-            send(socketTcpParameter[SERVER_FD_COMMUNICATE_WITH_ROS_LAUNCH_CONTROL].Socket, "RosLaunchStartLocation", 22, 0);
+            if(socketTcpParameter[SERVER_FD_COMMUNICATE_WITH_ROS_LAUNCH_CONTROL].IsConnect){
+              send(socketTcpParameter[SERVER_FD_COMMUNICATE_WITH_ROS_LAUNCH_CONTROL].Socket, "RosLaunchStartLocation", 22, 0);
+            }
           }
         }
         else if(valread == 28){
           if(strncmp(buffer, "OverWaitDataWhenStartProgram", 28) == 0){
-            send(socketTcpParameter[SERVER_FD_COMMUNICATE_WITH_ROS_LAUNCH_CONTROL].Socket, "RosLaunchStartLocation", 22, 0);
+            if(socketTcpParameter[SERVER_FD_COMMUNICATE_WITH_ROS_LAUNCH_CONTROL].IsConnect){
+              send(socketTcpParameter[SERVER_FD_COMMUNICATE_WITH_ROS_LAUNCH_CONTROL].Socket, "RosLaunchStartLocation", 22, 0);
+            }
           }
         }
       }
     }
   }
+}
+
+void RosRunning(){
+  ros::NodeHandle nh_;
+  ros::Publisher pub_ = nh_.advertise<geometry_msgs::PoseWithCovarianceStamped> ("/initialpose", 1);
+  ros::Rate loop_rate(10); // 10HZ = 0.1s
+  ros::spinOnce();
+
+  while (ros::ok()){
+    if(isSendInitialPose){
+      isSendInitialPose = false;
+
+      std::string fixed_frame = "map";
+      geometry_msgs::PoseWithCovarianceStamped pose;
+      pose.header.frame_id = fixed_frame;
+      pose.header.stamp = ros::Time::now();
+
+      // set x,y coord
+      pose.pose.pose.position.x = posX;
+      pose.pose.pose.position.y = posY;
+      pose.pose.pose.position.z = 0.0;
+
+      // set theta
+      tf::Quaternion quat;
+      quat.setRPY(0.0, 0.0, angle);
+      tf::quaternionTFToMsg(quat, pose.pose.pose.orientation);
+      pose.pose.covariance[6*0+0] = 0.5 * 0.5;
+      pose.pose.covariance[6*1+1] = 0.5 * 0.5;
+      pose.pose.covariance[6*5+5] = M_PI/12.0 * M_PI/12.0;
+
+      // publish
+      //ROS_INFO("x: %f, y: %f, z: 0.0, theta: %f",x,y,theta);
+      pub_.publish(pose);
+    }
+    
+    loop_rate.sleep(); 
+  }    
 }
 
 SocketTcpParameter InitTcpSocket(uint16_t port, uint16_t timeoutMs){
