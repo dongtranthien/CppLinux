@@ -15,6 +15,7 @@ import signal
 HOST = '127.0.0.1'  # The server's hostname or IP address
 #HOST = '172.16.120.83'
 PORT = 2004         # The port used by the server
+ISHOST = True
 
 #Status Running
 ROS_IDLE = 0
@@ -155,8 +156,10 @@ if __name__ == "__main__":
       print("Start.....")
       os.environ["TURTLEBOT3_MODEL"] = "burger"
       launchSimulate = RunLaunch("/home/idea/turtlebot3/catkin_ws/src/turtlebot3_simulations/turtlebot3_gazebo/launch/turtlebot3_world.launch")
-      #rospy.sleep(3)
-      launchGmaping = RunLaunch("/home/idea/turtle/src/turtlebot3/turtlebot3_slam/launch/turtlebot3_slam.launch")
+      if ISHOST:
+        launchGmaping = RunLaunch("/opt/ros/melodic/share/turtlebot3_slam/launch/turtlebot3_slam.launch")
+      else:
+        launchGmaping = RunLaunch("/home/idea/turtle/src/turtlebot3/turtlebot3_slam/launch/turtlebot3_slam.launch")
       statusRun = ROS_LAUNCH_MAPPING
     elif statusRun == ROS_LAUNCH_MAPPING:
       pass
@@ -168,7 +171,10 @@ if __name__ == "__main__":
     elif statusRun == ROS_START_LOCALIZATION:
       os.environ["TURTLEBOT3_MODEL"] = "burger"
       launchSimulate = RunLaunch("/home/idea/turtlebot3/catkin_ws/src/turtlebot3_simulations/turtlebot3_gazebo/launch/turtlebot3_world.launch")
-      launchLocation = RunLaunchWithParameter("/home/idea/turtle/src/turtlebot3/turtlebot3_navigation/launch/turtlebot3_navigation.launch", "map_file", "$HOME/idea/mapAgv/map.yaml")
+      if ISHOST:
+        launchLocation = RunLaunchWithParameter("/opt/ros/melodic/share/turtlebot3_navigation/launch/turtlebot3_navigation.launch", "map_file", "$HOME/idea/mapAgv/map.yaml")
+      else:
+        launchLocation = RunLaunchWithParameter("/home/idea/turtleBot/src/turtlebot3/turtlebot3_navigation/launch/turtlebot3_navigation.launch", "map_file", "$HOME/idea/mapAgv/map.yaml")
       statusRun = ROS_LAUNCH_LOCALIZATION
     elif statusRun == ROS_LAUNCH_LOCALIZATION:
       pass
