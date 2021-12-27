@@ -27,6 +27,7 @@
 #include <memory>
 #include <stdexcept>
 #include <array>
+#include <fstream>
 #ifdef _WIN32
 #include <Windows.h>
 #else
@@ -327,6 +328,9 @@ void CommunicateWithApp(){
       else if(valread == (-1)){
         if(isReceivedPathAndLandmark){
           isReceivedPathAndLandmark = false;
+          std::ofstream file("pathAndLandmark.txt");
+          file << pathAndLandmarkData;
+          file.close();
           send(new_socket, pathAndLandmarkData, pathAndLandmarkDataLength, 0);
         }
       }
