@@ -25,6 +25,8 @@ nav_msgs/Odometry.h
 -
 geometry_msgs/PoseWithCovarianceStamped.h
 /home/idea/Documents/CppLinux/012_AgvRosMainProcess/geometry_msgs/PoseWithCovarianceStamped.h
+geometry_msgs/Twist.h
+/home/idea/Documents/CppLinux/012_AgvRosMainProcess/geometry_msgs/Twist.h
 iostream
 -
 string

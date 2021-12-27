@@ -6,6 +6,7 @@
 #include <tf/transform_broadcaster.h>
 #include <nav_msgs/Odometry.h>
 #include "geometry_msgs/PoseWithCovarianceStamped.h"
+#include "geometry_msgs/Twist.h"
 
 #include <iostream>
 #include <string>
@@ -47,6 +48,7 @@ void CheckCommunicateWithRosLaunchControlDisconnect();
 void CheckCommunicateWithNodeSendMap();
 void CheckCommunicateWithNodeSendLidarAndPos();
 void RosRunning();
+void ControlDemo();
 
 
 std::string exec(const char* cmd);
@@ -93,6 +95,7 @@ int main(int argc, char **argv)
   std::thread t3(CheckCommunicateWithNodeSendMap);
   std::thread t4(CheckCommunicateWithNodeSendLidarAndPos);
   std::thread t5(RosRunning);
+  std::thread t6(ControlDemo);
   
   t1.join();
   t2.join();
@@ -100,6 +103,7 @@ int main(int argc, char **argv)
   t3.join();
   t4.join();
   t5.join();
+  t6.join();
 
   return 0;
 }
@@ -502,6 +506,30 @@ void RosRunning(){
     
     loop_rate.sleep(); 
   }    
+}
+
+void ControlDemo(){
+  ros::NodeHandle n;
+  ros::Publisher cmdVel_pub = n.advertise<geometry_msgs::Twist>("cmd_vel", 1000);
+
+  ros::Time current_time, last_time;
+  current_time = ros::Time::now();
+  last_time = ros::Time::now();
+
+  ros::Rate r(50.0);
+
+  while(n.ok()){
+    ros::spinOnce();               // check for incoming messages
+
+    geometry_msgs::Twist msg;
+    msg.linear.x = 0.1;
+    msg.angular.z = 0;
+
+    //publish the message
+    cmdVel_pub.publish(msg);
+
+    r.sleep();
+  }
 }
 
 SocketTcpParameter InitTcpSocket(uint16_t port, uint16_t timeoutMs){
