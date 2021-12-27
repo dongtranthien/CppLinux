@@ -74,6 +74,7 @@ typedef struct{
 SocketTcpParameter socketTcpParameter[SERVER_FD_COMMUNICATE_TOTAL];
 bool isSendInitialPose = false;
 double angle, posX, posY;
+bool isReceivedPathAndLandmark = false;
 
 SocketTcpParameter InitTcpSocket(uint16_t port, uint16_t timeoutMs);
 
@@ -117,7 +118,9 @@ void CommunicateWithApp(){
   struct sockaddr_in address;
   int opt = 1;
   int addrlen = sizeof(address);
-  char buffer[1024] = {0};
+  char buffer[8192] = {0};
+  char pathAndLandmarkData[8192] = {0};
+  int pathAndLandmarkDataLength = 0;
 
   #ifdef DEBUG
     printf("\nTcpRunning...");
@@ -130,9 +133,12 @@ void CommunicateWithApp(){
       exit(EXIT_FAILURE);
   }
 
+  struct timeval tv;
+  tv.tv_sec = 0;
+  tv.tv_usec = 500000;
+  //setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv, sizeof tv);
   // Forcefully attaching socket to the port 8080
-  if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT,
-                                                &opt, sizeof(opt)))
+  if (setsockopt(server_fd, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv, sizeof tv))
   {
       perror("setsockopt");
       exit(EXIT_FAILURE);
@@ -160,8 +166,8 @@ void CommunicateWithApp(){
       if ((new_socket = accept(server_fd, (struct sockaddr *)&address, 
                        (socklen_t*)&addrlen))<0)
       {
-        perror("accept");
-        exit(EXIT_FAILURE);
+        //perror("accept");
+        //exit(EXIT_FAILURE);
       }
       else{
         isClientConnect = true;
@@ -169,9 +175,12 @@ void CommunicateWithApp(){
       }
     }
     else{
-      valread = read( new_socket , buffer, 1024);
-      printf("%s\n",buffer );
-      printf("%d\n",valread );
+      valread = read( new_socket , buffer, 8019);
+      if(valread != (-1)){
+        buffer[valread] = 0;
+        printf("\nBuffer: %s\n",buffer );
+        printf("%d\n",valread );
+      }
 
       //TcpSocketSend(SERVER_FD_COMMUNICATE_WITH_APP, buffer, valread);
       
@@ -201,7 +210,6 @@ void CommunicateWithApp(){
           send(socketTcpParameter[SERVER_FD_COMMUNICATE_WITH_ROS_LAUNCH_CONTROL].Socket, "RosLaunchStopLocation", 21, 0);
           send(socketTcpParameter[SERVER_FD_COMMUNICATE_WITH_NODE_SEND_LIDAR_AND_POS].Socket, "RosSendLidarAndPosStop", 22, 0);
         }
-        // Add ping signal from app -> to check connect/loss connect/close app
         else if((strncmp("{initialpose,", buffer, 13) == 0)){
           send(new_socket, "Ok-App-initialpose\n", 19, 0);
 
@@ -289,6 +297,25 @@ void CommunicateWithApp(){
           }
           
         }
+        else if((strncmp("{\"pathAndLandmark\":", buffer, 19) == 0)){
+          if(!isReceivedPathAndLandmark){
+            isReceivedPathAndLandmark = true;
+            //send(new_socket, buffer, valread, 0);
+            for(uint32_t i = 0; i < valread; i++){
+              pathAndLandmarkData[i] = buffer[i];
+            }
+            pathAndLandmarkDataLength = valread;
+          }
+        }
+        else{
+          if(isReceivedPathAndLandmark){
+            for(uint32_t i = 0; i < valread; i++){
+              if((pathAndLandmarkDataLength + i) >= 8192) break;
+              pathAndLandmarkData[pathAndLandmarkDataLength + i] = buffer[i];
+            }
+            pathAndLandmarkDataLength += valread;
+          }
+        }
         // Add ping signal from app -> to check connect/loss connect/close app
         
       }
@@ -296,6 +323,12 @@ void CommunicateWithApp(){
         isClientConnect = false;
 
         std::cout << "CommunicateWithApp Disconnect\n";
+      }
+      else if(valread == (-1)){
+        if(isReceivedPathAndLandmark){
+          isReceivedPathAndLandmark = false;
+          send(new_socket, pathAndLandmarkData, pathAndLandmarkDataLength, 0);
+        }
       }
     }
   }

@@ -8,5 +8,5 @@
 
 # modified environment variables
 export CMAKE_PREFIX_PATH="/home/idea/Documents/CppLinux/012_AgvRosMainProcess/build/devel:$CMAKE_PREFIX_PATH"
-export ROSLISP_PACKAGE_DIRECTORIES='/home/idea/Documents/CppLinux/012_AgvRosMainProcess/build/devel/share/common-lisp'
+export ROSLISP_PACKAGE_DIRECTORIES="/home/idea/Documents/CppLinux/012_AgvRosMainProcess/build/devel/share/common-lisp:$ROSLISP_PACKAGE_DIRECTORIES"
 export ROS_PACKAGE_PATH="/home/idea/Documents/CppLinux/012_AgvRosMainProcess:$ROS_PACKAGE_PATH"

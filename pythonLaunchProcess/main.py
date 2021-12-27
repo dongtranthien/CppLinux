@@ -15,7 +15,7 @@ import signal
 HOST = '127.0.0.1'  # The server's hostname or IP address
 #HOST = '172.16.120.83'
 PORT = 2004         # The port used by the server
-ISHOST = True
+ISHOST = False
 
 #Status Running
 ROS_IDLE = 0
@@ -30,9 +30,18 @@ def signal_handler(sig, frame):
   #os.system('kill -9 `sudo lsof -t -i:2007')
   print('You pressed Ctrl+C!')
   socketRunning.close()
-  launchSimulate.shutdown()
-  launchGmaping.shutdown()
-  launchLocation.shutdown()
+  try:
+    launchSimulate.shutdown()
+  except:
+    pass
+  try:
+    launchLocation.shutdown()
+  except:
+    pass
+  try:
+    launchGmaping.shutdown()
+  except:
+    pass
   #os.system('killall -9 rosmaster')
   sys.exit(0)
 def RunLaunch(link):
@@ -112,8 +121,14 @@ def TcpConnect():
           if statusRun == ROS_IDLE:
             statusRun = ROS_START_LOCALIZATION
           else:
-            launchSimulate.shutdown()
-            launchLocation.shutdown()
+            try:
+              launchSimulate.shutdown()
+            except:
+              pass
+            try:
+              launchLocation.shutdown()
+            except:
+              pass
             print("ROS_STOP_LOCALIZATION")
             statusRun = ROS_START_LOCALIZATION
         elif data == b'RosLaunchStopLocation':
@@ -164,8 +179,14 @@ if __name__ == "__main__":
     elif statusRun == ROS_LAUNCH_MAPPING:
       pass
     elif statusRun == ROS_STOP_MAPPING:
-      launchSimulate.shutdown()
-      launchGmaping.shutdown()
+      try:
+        launchSimulate.shutdown()
+      except:
+        pass
+      try:
+        launchGmaping.shutdown()
+      except:
+        pass
       statusRun = ROS_IDLE
       print("ROS_STOP_MAPPING")
     elif statusRun == ROS_START_LOCALIZATION:
@@ -174,13 +195,19 @@ if __name__ == "__main__":
       if ISHOST:
         launchLocation = RunLaunchWithParameter("/opt/ros/melodic/share/turtlebot3_navigation/launch/turtlebot3_navigation.launch", "map_file", "$HOME/idea/mapAgv/map.yaml")
       else:
-        launchLocation = RunLaunchWithParameter("/home/idea/turtleBot/src/turtlebot3/turtlebot3_navigation/launch/turtlebot3_navigation.launch", "map_file", "$HOME/idea/mapAgv/map.yaml")
+        launchLocation = RunLaunchWithParameter("/home/idea/turtle/src/turtlebot3/turtlebot3_navigation/launch/turtlebot3_navigation.launch", "map_file", "$HOME/idea/mapAgv/map.yaml")
       statusRun = ROS_LAUNCH_LOCALIZATION
     elif statusRun == ROS_LAUNCH_LOCALIZATION:
       pass
     elif statusRun == ROS_STOP_LOCALIZATION:
-      launchSimulate.shutdown()
-      launchLocation.shutdown()
+      try:
+        launchSimulate.shutdown()
+      except:
+        pass
+      try:
+        launchLocation.shutdown()
+      except:
+        pass
       statusRun = ROS_IDLE
       print("ROS_STOP_LOCALIZATION")
 
