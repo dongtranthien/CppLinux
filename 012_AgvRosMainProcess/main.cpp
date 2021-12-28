@@ -36,6 +36,7 @@
 #endif
 
 #include "crc.h"
+#include "json.h"
 
 #define PORT_COMMUNICATE_WITH_APP                     2001
 #define PORT_COMMUNICATE_WITH_ROS_LAUNCH_CONTROL      2004
@@ -52,6 +53,8 @@ void ControlDemo();
 
 
 std::string exec(const char* cmd);
+
+using json = nlohmann::json;
 
 typedef enum{
   ROS_LAUNCH_COMMAND_NONE = 0,
@@ -77,7 +80,9 @@ typedef struct{
 SocketTcpParameter socketTcpParameter[SERVER_FD_COMMUNICATE_TOTAL];
 bool isSendInitialPose = false;
 double angle, posX, posY;
-bool isReceivedPathAndLandmark = false;
+bool isReceivedPathAndLandmark = false, isReceivedDonePathAndLandmark = false;
+json pathAndLandmarkJson;
+bool pathAndLandmarkJsonDataOk = false;
 
 SocketTcpParameter InitTcpSocket(uint16_t port, uint16_t timeoutMs);
 
@@ -99,7 +104,6 @@ int main(int argc, char **argv)
   
   t1.join();
   t2.join();
-  t3.join();
   t3.join();
   t4.join();
   t5.join();
@@ -303,6 +307,8 @@ void CommunicateWithApp(){
           
         }
         else if((strncmp("{\"pathAndLandmark\":", buffer, 19) == 0)){
+          isReceivedDonePathAndLandmark = false;
+          
           if(!isReceivedPathAndLandmark){
             isReceivedPathAndLandmark = true;
             //send(new_socket, buffer, valread, 0);
@@ -312,8 +318,37 @@ void CommunicateWithApp(){
             pathAndLandmarkDataLength = valread;
           }
         }
+        else if((strncmp("{\"responsePathAndLandmark\":\"Ok\"}", buffer, 32) == 0)){
+          std::cout<<"Received Ok.....\n";
+          if(isReceivedDonePathAndLandmark){
+            isReceivedDonePathAndLandmark = false;
+
+            std::ofstream file("pathAndLandmark.txt");
+            file << pathAndLandmarkData;
+            file.close();
+
+            try{
+              pathAndLandmarkJson = json::parse(pathAndLandmarkData);
+              pathAndLandmarkJsonDataOk = true;
+            }
+            catch (json::parse_error& ex){
+              std::cerr << "JSON parse error at byte " << ex.byte << std::endl;
+            }
+
+            //std::cout<<"\nData test: ";
+            //std::cout<<pathAndLandmarkJson["pathAndLandmark"]["path"]["total"];
+            //std::cout<<"\n";
+            //std::cout<<pathAndLandmarkJson["pathAndLandmark"]["path"]["dat"][0]["n"];
+            //std::cout<<"\n";
+            if(pathAndLandmarkJsonDataOk){
+              
+            }
+          }
+        }
         else{
           if(isReceivedPathAndLandmark){
+            isReceivedDonePathAndLandmark = false;
+
             for(uint32_t i = 0; i < valread; i++){
               if((pathAndLandmarkDataLength + i) >= 8192) break;
               pathAndLandmarkData[pathAndLandmarkDataLength + i] = buffer[i];
@@ -332,9 +367,10 @@ void CommunicateWithApp(){
       else if(valread == (-1)){
         if(isReceivedPathAndLandmark){
           isReceivedPathAndLandmark = false;
-          std::ofstream file("pathAndLandmark.txt");
-          file << pathAndLandmarkData;
-          file.close();
+          isReceivedDonePathAndLandmark = true;
+
+          std::cout << "\nRead data next......\n";
+          
           send(new_socket, pathAndLandmarkData, pathAndLandmarkDataLength, 0);
         }
       }
@@ -612,3 +648,5 @@ std::string exec(const char* cmd) {
     }
     return result;
 }
+
+void 
