@@ -94,7 +94,7 @@ bool isPathAndLandmarkJsonDataOk = false;
 uint8_t indexLMCurrent = 255, indexLMToRun;
 bool isReceivedLMToRun = false;
 GotoLandmarkProcessStep gotoLandmarkProcessStep;
-float xRobot, yRobot, vxControl = 0, vThControl = 0, xToRun, yToRun;
+float xRobot, yRobot, yawRobot, vxControl = 0, vThControl = 0, xToRun, yToRun;
 
 SocketTcpParameter InitTcpSocket(uint16_t port, uint16_t timeoutMs);
 
@@ -523,6 +523,112 @@ void CheckCommunicateWithNodeSendLidarAndPos(){
             if(socketTcpParameter[SERVER_FD_COMMUNICATE_WITH_ROS_LAUNCH_CONTROL].IsConnect){
               send(socketTcpParameter[SERVER_FD_COMMUNICATE_WITH_ROS_LAUNCH_CONTROL].Socket, "RosLaunchStartLocation", 22, 0);
             }
+          }
+        }
+        if((strncmp(buffer, "{RobotPositionMm:", 17) == 0)&&(buffer[valread - 1] == '}')){
+          uint8_t index_t = 17, lengthReceived = 0;
+          bool isError = false;
+          char strArr_t[13] = {0};
+          while(lengthReceived < 12){
+            if(index_t >= valread){
+              isError = true;
+              break;
+            }
+            else{
+              if(((buffer[index_t] >= '0')&&(buffer[index_t] <= '9'))||(buffer[index_t] == '.')||(buffer[index_t] == '-')){
+                strArr_t[lengthReceived] = buffer[index_t];
+                lengthReceived++;
+                index_t++;
+              }
+              else if(buffer[index_t] == ','){
+                strArr_t[lengthReceived] = 0;
+                index_t++;
+                break;
+              }
+              else{
+                isError = true;
+                break;
+              }
+            }
+          }
+
+          if((!isError)||(lengthReceived >= 12)){
+            std::string str_t;
+            str_t = strArr_t;
+            //std::cout << "xRobot received: " << str_t << "\n";
+            xRobot = std::stof(str_t);
+
+            lengthReceived = 0;
+            while(lengthReceived < 12){
+              if(index_t >= valread){
+                isError = true;
+                break;
+              }
+              else{
+                if(((buffer[index_t] >= '0')&&(buffer[index_t] <= '9'))||(buffer[index_t] == '.')||(buffer[index_t] == '-')){
+                  strArr_t[lengthReceived] = buffer[index_t];
+                  lengthReceived++;
+                  index_t++;
+                }
+                else if(buffer[index_t] == ','){
+                  strArr_t[lengthReceived] = 0;
+                  index_t++;
+                  break;
+                }
+                else{
+                  isError = true;
+                  break;
+                }
+              }
+            }
+
+            if((!isError)||(lengthReceived >= 12)){
+              str_t = strArr_t;
+              //std::cout << "yRobot received: " << str_t << "\n";
+              yRobot = std::stof(str_t);
+
+              lengthReceived = 0;
+              while(lengthReceived < 12){
+                if(index_t >= valread){
+                  isError = true;
+                  break;
+                }
+                else{
+                  if(((buffer[index_t] >= '0')&&(buffer[index_t] <= '9'))||(buffer[index_t] == '.')||(buffer[index_t] == '-')){
+                    strArr_t[lengthReceived] = buffer[index_t];
+                    lengthReceived++;
+                    index_t++;
+                  }
+                  else if(buffer[index_t] == '}'){
+                    strArr_t[lengthReceived] = 0;
+                    index_t++;
+                    break;
+                  }
+                  else{
+                    isError = true;
+                    break;
+                  }
+                }
+              }
+
+              if((!isError)||(lengthReceived >= 12)){
+                str_t = strArr_t;
+                //std::cout << "yawRobot received: " << str_t << "\n";
+                yawRobot = std::stof(str_t);
+
+                std::cout<< "Received robot position: " << xRobot << "-" << yRobot << "-" << yawRobot << "\n";
+              }
+              else{
+                std::cout<<"Received yaw robot failed\n";
+              }
+              
+            }
+            else{
+              std::cout<<"Received y robot failed\n";
+            }
+          }
+          else{
+            std::cout<<"Received x robot failed\n";
           }
         }
       }

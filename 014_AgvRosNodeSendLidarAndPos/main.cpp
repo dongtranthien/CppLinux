@@ -56,12 +56,13 @@ typedef struct{
 }SocketTcpParameter;
 SocketTcpParameter socketTcpParameter[SERVER_FD_COMMUNICATE_TOTAL];
 bool isNeedData = false;
-std::string laserData;
+std::string laserData, robotPoseData;
 bool isReceivedLaserData = false;
 tf::StampedTransform transform;
 uint32_t timeReceivedPre;
 uint8_t delayCounter = 0;
 int sockCommunicateWithMainProcess = 0;
+bool isConnectWithMainProcess = false;
 uint32_t timeStartWaitingReceived;
 
 void RosRunning();
@@ -171,7 +172,9 @@ void CommunicateWithApp(){
               }
               else{
                 delayCounter = 0;
-                send(sockCommunicateWithMainProcess, "OverDelayWaitData", 17, 0);
+                if(isConnectWithMainProcess){
+                  send(sockCommunicateWithMainProcess, "OverDelayWaitData", 17, 0);
+                }
               }
               
               printf("Received delay...\n");
@@ -181,6 +184,9 @@ void CommunicateWithApp(){
               delayCounter = 0;
               printf("Send data..\n");
               send(socketTcpParameter[SERVER_FD_COMMUNICATE_WITH_APP].Socket, laserData.c_str(), laserData.length(), 0);
+              if(isConnectWithMainProcess){
+                send(sockCommunicateWithMainProcess, robotPoseData.c_str(), robotPoseData.length(), 0);
+              }
             }
           }
           else{
@@ -192,7 +198,9 @@ void CommunicateWithApp(){
             if((timeNow_t - timeStartWaitingReceived) > 15000){
               timeStartWaitingReceived = timeNow_t;
               
-              send(sockCommunicateWithMainProcess, "OverWaitDataWhenStartProgram", 17, 0);
+              if(isConnectWithMainProcess){
+                send(sockCommunicateWithMainProcess, "OverWaitDataWhenStartProgram", 17, 0);
+              }
             }
 
             printf("LaserAndPosWaiting..\n");
@@ -244,6 +252,8 @@ void CommunicateWithMainProcess(){
     usleep(100000);
   }
 
+  isConnectWithMainProcess = true;
+
 	while(true){
     valread = read( sock , buffer, 1024);
     std::cout<<"CommunicateWithMainProcess - Read: " + std::to_string(valread)+"\n";
@@ -260,6 +270,7 @@ void CommunicateWithMainProcess(){
       }
       else{
         sockCommunicateWithMainProcess = sock;
+        isConnectWithMainProcess = true;
       }
 
       while (connect(sock, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0)
@@ -319,7 +330,9 @@ void ProcessLaserScannerData(const sensor_msgs::LaserScan::ConstPtr& scan){
                    std::to_string(transform.getOrigin().z()) + "," + 
                    std::to_string(yaw) + "],\"laser\":[";
                    
-                   
+  robotPoseData = "{RobotPositionMm:" + std::to_string(transform.getOrigin().x()) + "," 
+                                      + std::to_string(transform.getOrigin().y()) + ","  
+                                      + std::to_string(yaw) + "}";
 
   uint32_t laserDataSize = scan->ranges.size();
   for(uint32_t i = 0; i < laserDataSize; i++){
