@@ -184,9 +184,6 @@ void CommunicateWithApp(){
               delayCounter = 0;
               printf("Send data..\n");
               send(socketTcpParameter[SERVER_FD_COMMUNICATE_WITH_APP].Socket, laserData.c_str(), laserData.length(), 0);
-              if(isConnectWithMainProcess){
-                send(sockCommunicateWithMainProcess, robotPoseData.c_str(), robotPoseData.length(), 0);
-              }
             }
           }
           else{
@@ -333,6 +330,10 @@ void ProcessLaserScannerData(const sensor_msgs::LaserScan::ConstPtr& scan){
   robotPoseData = "{RobotPositionMm:" + std::to_string(transform.getOrigin().x()) + "," 
                                       + std::to_string(transform.getOrigin().y()) + ","  
                                       + std::to_string(yaw) + "}";
+
+  if(isConnectWithMainProcess){
+    send(sockCommunicateWithMainProcess, robotPoseData.c_str(), robotPoseData.length(), 0);
+  }
 
   uint32_t laserDataSize = scan->ranges.size();
   for(uint32_t i = 0; i < laserDataSize; i++){
