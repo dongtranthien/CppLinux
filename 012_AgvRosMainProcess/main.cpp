@@ -42,6 +42,7 @@
 #define PORT_COMMUNICATE_WITH_ROS_LAUNCH_CONTROL      2004
 #define PORT_COMMUNICATE_WITH_NODE_SEND_MAP           2005
 #define PORT_COMMUNICATE_WITH_NODE_SEND_LIDAR_AND_POS 2006
+#define DEBUG_CONTROL_TO_LANDMARK
 
 void ThreadStartSendMapNode();
 void CommunicateWithApp();
@@ -50,6 +51,7 @@ void CheckCommunicateWithNodeSendMap();
 void CheckCommunicateWithNodeSendLidarAndPos();
 void RosRunning();
 void ControlDemo();
+void ControlToLandmarkProcess();
 
 
 std::string exec(const char* cmd);
@@ -77,12 +79,22 @@ typedef struct{
   bool IsConnect = false;
   int Socket;
 }SocketTcpParameter;
+
+typedef enum{
+  GO_TO_LANDMARK_PROCESS_STEP_IDLE = 0,
+  GO_TO_LANDMARK_PROCESS_STEP_RUN_TO_LANDMARK_FIRST_TIME
+}GotoLandmarkProcessStep;
+
 SocketTcpParameter socketTcpParameter[SERVER_FD_COMMUNICATE_TOTAL];
 bool isSendInitialPose = false;
 double angle, posX, posY;
 bool isReceivedPathAndLandmark = false, isReceivedDonePathAndLandmark = false;
 json pathAndLandmarkJson;
-bool pathAndLandmarkJsonDataOk = false;
+bool isPathAndLandmarkJsonDataOk = false;
+uint8_t indexLMCurrent = 255, indexLMToRun;
+bool isReceivedLMToRun = false;
+GotoLandmarkProcessStep gotoLandmarkProcessStep;
+float xRobot, yRobot, vxControl = 0, vThControl = 0, xToRun, yToRun;
 
 SocketTcpParameter InitTcpSocket(uint16_t port, uint16_t timeoutMs);
 
@@ -101,6 +113,7 @@ int main(int argc, char **argv)
   std::thread t4(CheckCommunicateWithNodeSendLidarAndPos);
   std::thread t5(RosRunning);
   std::thread t6(ControlDemo);
+  std::thread t7(ControlToLandmarkProcess);
   
   t1.join();
   t2.join();
@@ -108,6 +121,7 @@ int main(int argc, char **argv)
   t4.join();
   t5.join();
   t6.join();
+  t7.join();
 
   return 0;
 }
@@ -329,7 +343,7 @@ void CommunicateWithApp(){
 
             try{
               pathAndLandmarkJson = json::parse(pathAndLandmarkData);
-              pathAndLandmarkJsonDataOk = true;
+              isPathAndLandmarkJsonDataOk = true;
             }
             catch (json::parse_error& ex){
               std::cerr << "JSON parse error at byte " << ex.byte << std::endl;
@@ -340,10 +354,19 @@ void CommunicateWithApp(){
             //std::cout<<"\n";
             //std::cout<<pathAndLandmarkJson["pathAndLandmark"]["path"]["dat"][0]["n"];
             //std::cout<<"\n";
-            if(pathAndLandmarkJsonDataOk){
-              
+            if(isPathAndLandmarkJsonDataOk){
+
             }
           }
+        }
+        else if((strncmp("{\"responsePathAndLandmark\":\"Error\"}", buffer, 35) == 0)){
+
+        }
+        else if((strncmp("{\"sendLandmark\":", buffer, 16) == 0)){  // Error when landmark index > 9
+          isReceivedLMToRun = true;
+          indexLMToRun = buffer[16] - '0';
+
+          send(new_socket, "{\"reponseSendLandmark\":\"Ok\"}", 28, 0);
         }
         else{
           if(isReceivedPathAndLandmark){
@@ -558,13 +581,45 @@ void ControlDemo(){
     ros::spinOnce();               // check for incoming messages
 
     geometry_msgs::Twist msg;
-    msg.linear.x = 0.1;
-    msg.angular.z = 0;
+    msg.linear.x = vxControl;
+    msg.angular.z = vThControl;
 
     //publish the message
     cmdVel_pub.publish(msg);
 
     r.sleep();
+  }
+}
+
+void ControlToLandmarkProcess(){
+  while(true){
+    if(gotoLandmarkProcessStep == GO_TO_LANDMARK_PROCESS_STEP_IDLE){
+      if(isReceivedLMToRun){
+        isReceivedLMToRun = false;
+        if(isPathAndLandmarkJsonDataOk){
+          if(indexLMCurrent == 255){
+            xToRun = pathAndLandmarkJson["pathAndLandmark"]["landmark"]["dat"][indexLMToRun]["p"][0];
+            yToRun = pathAndLandmarkJson["pathAndLandmark"]["landmark"]["dat"][indexLMToRun]["p"][1];
+            gotoLandmarkProcessStep = GO_TO_LANDMARK_PROCESS_STEP_RUN_TO_LANDMARK_FIRST_TIME;
+
+            #ifdef DEBUG_CONTROL_TO_LANDMARK
+              std::cout<< "Position landmark to run: " << xToRun << "-" << yToRun << "\n";
+            #endif
+          }
+          else{
+
+          }
+        }
+        else{
+          std::cout<<"Path and landmark error -> Not run to landmark\n";
+        }
+      }
+      std::this_thread::sleep_for(std::chrono::milliseconds(200));
+    }
+    else if(gotoLandmarkProcessStep == GO_TO_LANDMARK_PROCESS_STEP_RUN_TO_LANDMARK_FIRST_TIME){
+      // Get position of landmark to run
+      
+    }
   }
 }
 
@@ -648,5 +703,3 @@ std::string exec(const char* cmd) {
     }
     return result;
 }
-
-void 
