@@ -56,6 +56,7 @@ void ControlToLandmarkProcess();
 
 
 std::string exec(const char* cmd);
+double DegToRad(double val);
 
 using json = nlohmann::json;
 
@@ -83,7 +84,8 @@ typedef struct{
 
 typedef enum{
   GO_TO_LANDMARK_PROCESS_STEP_IDLE = 0,
-  GO_TO_LANDMARK_PROCESS_STEP_RUN_TO_LANDMARK_FIRST_TIME
+  GO_TO_LANDMARK_PROCESS_STEP_RUN_TO_LANDMARK_FIRST_TIME,
+  GO_TO_LANDMARK_PROCESS_STEP_RUN_TO_LANDMARK
 }GotoLandmarkProcessStep;
 
 typedef enum{
@@ -92,6 +94,12 @@ typedef enum{
   GO_TO_LANDMARK_FIRST_TIME_STEP_GOTO_LANDMARK,
   GO_TO_LANDMARK_FIRST_TIME_STEP_ROTATE_WITH_DIRECT_SAME_LANDMARK
 }GotoLandmarkFirstTimeStep;
+
+typedef enum{
+  GO_TO_LANDMARK_STEP_FIND_PATH_TO_GO = 0,
+  GO_TO_LANDMARK_STEP_GET_POINT_ARRAY_ON_PATH,
+  GO_TO_LANDMARK_STEP_RUNNING_PROCESS
+}GotoLandmarkStep;
 
 SocketTcpParameter socketTcpParameter[SERVER_FD_COMMUNICATE_TOTAL];
 bool isSendInitialPose = false;
@@ -103,8 +111,13 @@ uint8_t indexLMCurrent = 255, indexLMToRun;
 bool isReceivedLMToRun = false;
 GotoLandmarkProcessStep gotoLandmarkProcessStep;
 GotoLandmarkFirstTimeStep gotoLandmarkFirstTimeStep;
-double xRobot, yRobot, yawRobot, vxControl = 0, vThControl = 0, xToRun, yToRun, angleRobotToLandmark, angleLandmark;
+GotoLandmarkStep gotoLandmarkStep;
+double xRobot, yRobot, yawRobot, vxControl = 0, vxSet, vThControl = 0, vThSet, xToRun, yToRun, angleRobotToLandmark, angleLandmark;
 bool isNewReceivedRobotData = false;
+uint8_t pathIdArrRunning[32], pathIdArrRunningLength, indexPathIdRunning;
+double pointArrRunning[32][2];
+uint8_t pointArrRunningLength, indexPointRunning;
+double angleRobotToPoint;
 
 SocketTcpParameter InitTcpSocket(uint16_t port, uint16_t timeoutMs);
 
@@ -713,72 +726,192 @@ void ControlDemo(){
 
 void ControlToLandmarkProcess(){
   while(true){
-    if(gotoLandmarkProcessStep == GO_TO_LANDMARK_PROCESS_STEP_IDLE){
-      if(isReceivedLMToRun){
-        isReceivedLMToRun = false;
-        if(isPathAndLandmarkJsonDataOk){
-          if(indexLMCurrent == 255){
-            xToRun = pathAndLandmarkJson["pathAndLandmark"]["landmark"]["dat"][indexLMToRun]["p"][0];
-            yToRun = pathAndLandmarkJson["pathAndLandmark"]["landmark"]["dat"][indexLMToRun]["p"][1];
-            gotoLandmarkProcessStep = GO_TO_LANDMARK_PROCESS_STEP_RUN_TO_LANDMARK_FIRST_TIME;
-            gotoLandmarkFirstTimeStep = GO_TO_LANDMARK_FIRST_TIME_STEP_CALCULATE_ANGLE_ROBOT_TO_LANDMARK;
-            #ifdef DEBUG_CONTROL_TO_LANDMARK
-              std::cout<< "Position landmark to run: " << xToRun << "-" << yToRun << "\n";
-            #endif
+    switch(gotoLandmarkProcessStep){
+      case GO_TO_LANDMARK_PROCESS_STEP_IDLE:{
+        if(isReceivedLMToRun){
+          isReceivedLMToRun = false;
+          if(isPathAndLandmarkJsonDataOk){
+            if(indexLMCurrent == 255){
+              xToRun = pathAndLandmarkJson["pathAndLandmark"]["landmark"]["dat"][indexLMToRun]["p"][0];
+              yToRun = pathAndLandmarkJson["pathAndLandmark"]["landmark"]["dat"][indexLMToRun]["p"][1];
+              gotoLandmarkProcessStep = GO_TO_LANDMARK_PROCESS_STEP_RUN_TO_LANDMARK_FIRST_TIME;
+              gotoLandmarkFirstTimeStep = GO_TO_LANDMARK_FIRST_TIME_STEP_CALCULATE_ANGLE_ROBOT_TO_LANDMARK;
+              #ifdef DEBUG_CONTROL_TO_LANDMARK
+                std::cout<< "Position landmark to run: " << xToRun << "-" << yToRun << "\n";
+              #endif
+            }
+            else if(indexLMToRun != indexLMCurrent){
+              gotoLandmarkProcessStep = GO_TO_LANDMARK_PROCESS_STEP_RUN_TO_LANDMARK;
+              gotoLandmarkStep = GO_TO_LANDMARK_STEP_FIND_PATH_TO_GO;
+            }
           }
           else{
-
+            std::cout<<"Path and landmark error -> Not run to landmark\n";
           }
         }
-        else{
-          std::cout<<"Path and landmark error -> Not run to landmark\n";
-        }
+        std::this_thread::sleep_for(std::chrono::milliseconds(200));
+        break;
       }
-      std::this_thread::sleep_for(std::chrono::milliseconds(200));
-    }
-    else if(gotoLandmarkProcessStep == GO_TO_LANDMARK_PROCESS_STEP_RUN_TO_LANDMARK_FIRST_TIME){
-      // Get position of landmark to run
-      switch(gotoLandmarkFirstTimeStep){
-        case GO_TO_LANDMARK_FIRST_TIME_STEP_CALCULATE_ANGLE_ROBOT_TO_LANDMARK:{
-          if((xRobot == xToRun)&&(yRobot == yToRun)){
-            gotoLandmarkProcessStep = GO_TO_LANDMARK_PROCESS_STEP_IDLE;
-          }
-          else{
-            if(yRobot == yToRun){
-              if(xRobot < xToRun){
-                angleRobotToLandmark = 0;
+      case GO_TO_LANDMARK_PROCESS_STEP_RUN_TO_LANDMARK_FIRST_TIME:{
+        // Get position of landmark to run
+        switch(gotoLandmarkFirstTimeStep){
+          case GO_TO_LANDMARK_FIRST_TIME_STEP_CALCULATE_ANGLE_ROBOT_TO_LANDMARK:{
+            if((xRobot == xToRun)&&(yRobot == yToRun)){
+              gotoLandmarkProcessStep = GO_TO_LANDMARK_PROCESS_STEP_IDLE;
+            }
+            else{
+              if(yRobot == yToRun){
+                if(xRobot < xToRun){
+                  angleRobotToLandmark = 0;
+                }
+                else{
+                  angleRobotToLandmark = 3.141592;
+                }
               }
-              else{
-                angleRobotToLandmark = 3.141592;
+              else if(xRobot == xToRun){
+                if(yRobot < yToRun){
+                  angleRobotToLandmark = 1.570796;
+                }
+                else{
+                  angleRobotToLandmark = 4.712388;
+                }
               }
-            }
-            else if(xRobot == xToRun){
-              if(yRobot < yToRun){
-                angleRobotToLandmark = 1.570796;
+              else if((xRobot < xToRun)&&(yRobot < yToRun)){
+                angleRobotToLandmark = atan((yToRun - yRobot)/(xToRun - xRobot));
               }
-              else{
-                angleRobotToLandmark = 4.712388;
+              else if((xRobot > xToRun)&&(yRobot < yToRun)){
+                angleRobotToLandmark = atan(abs(yToRun - yRobot)/(xToRun - xRobot));
+                angleRobotToLandmark = 3.141592 - angleRobotToLandmark;
               }
-            }
-            else if((xRobot < xToRun)&&(yRobot < yToRun)){
-              angleRobotToLandmark = atan((yToRun - yRobot)/(xToRun - xRobot));
-            }
-            else if((xRobot > xToRun)&&(yRobot < yToRun)){
-              angleRobotToLandmark = atan(abs(yToRun - yRobot)/(xToRun - xRobot));
-              angleRobotToLandmark = 3.141592 - angleRobotToLandmark;
-            }
-            else if((xRobot > xToRun)&&(yRobot > yToRun)){
-              angleRobotToLandmark = atan(abs(yToRun - yRobot)/abs(xToRun - xRobot));
-              angleRobotToLandmark = 3.141592 + angleRobotToLandmark;
-            }
-            else if((xRobot < xToRun)&&(yRobot > yToRun)){
-              angleRobotToLandmark = atan(abs(yToRun - yRobot)/abs(xToRun - xRobot));
-              angleRobotToLandmark = 6.283185 - angleRobotToLandmark;
-            }
+              else if((xRobot > xToRun)&&(yRobot > yToRun)){
+                angleRobotToLandmark = atan(abs(yToRun - yRobot)/abs(xToRun - xRobot));
+                angleRobotToLandmark = 3.141592 + angleRobotToLandmark;
+              }
+              else if((xRobot < xToRun)&&(yRobot > yToRun)){
+                angleRobotToLandmark = atan(abs(yToRun - yRobot)/abs(xToRun - xRobot));
+                angleRobotToLandmark = 6.283185 - angleRobotToLandmark;
+              }
 
+              double deltaAngle = abs((double)(yawRobot - angleRobotToLandmark));
+
+              if(yawRobot < angleRobotToLandmark){
+                if(deltaAngle <= 3.141592){
+                  vThControl = 0.1;
+                }
+                else{
+                  vThControl = -0.1;
+                }
+              }
+              else{
+                if(deltaAngle <= 3.141592){
+                  vThControl = -0.1;
+                }
+                else{
+                  vThControl = 0.1;
+                }
+              }
+
+              std::cout << "yawRobot: " << yawRobot << "\n";
+              std::cout << "angleRobotToLandmark: " << angleRobotToLandmark << "\n";
+              std::cout << "deltaAngle: " << deltaAngle << "\n";
+              std::cout << "vThControl: " << vThControl << "\n";
+              std::cout << "Angle robot to landmark: " << (angleRobotToLandmark*360/6.283185) << "\n";
+              gotoLandmarkFirstTimeStep = GO_TO_LANDMARK_FIRST_TIME_STEP_ROTATE_TO_LANDMARK;
+            }
+            break;
+          }
+          case GO_TO_LANDMARK_FIRST_TIME_STEP_ROTATE_TO_LANDMARK:{
+            yawRobot = yawRobot + (vThControl*20/1000);
+            //std::cout << "yawRobot: " << yawRobot << "\n";
+
+            if(isNewReceivedRobotData){
+              isNewReceivedRobotData = false;
+              if(yRobot == yToRun){
+                if(xRobot < xToRun){
+                  angleRobotToLandmark = 0;
+                }
+                else{
+                  angleRobotToLandmark = 3.141592;
+                }
+              }
+              else if(xRobot == xToRun){
+                if(yRobot < yToRun){
+                  angleRobotToLandmark = 1.570796;
+                }
+                else{
+                  angleRobotToLandmark = 4.712388;
+                }
+              }
+              else if((xRobot < xToRun)&&(yRobot < yToRun)){
+                angleRobotToLandmark = atan((yToRun - yRobot)/(xToRun - xRobot));
+              }
+              else if((xRobot > xToRun)&&(yRobot < yToRun)){
+                angleRobotToLandmark = atan(abs(yToRun - yRobot)/(xToRun - xRobot));
+                angleRobotToLandmark = 3.141592 - angleRobotToLandmark;
+              }
+              else if((xRobot > xToRun)&&(yRobot > yToRun)){
+                angleRobotToLandmark = atan(abs(yToRun - yRobot)/abs(xToRun - xRobot));
+                angleRobotToLandmark = 3.141592 + angleRobotToLandmark;
+              }
+              else if((xRobot < xToRun)&&(yRobot > yToRun)){
+                angleRobotToLandmark = atan(abs(yToRun - yRobot)/abs(xToRun - xRobot));
+                angleRobotToLandmark = 6.283185 - angleRobotToLandmark;
+              }
+            }
+            
             double deltaAngle = abs((double)(yawRobot - angleRobotToLandmark));
-
-            if(yawRobot < angleRobotToLandmark){
+            //std::cout << "deltaAngle: " << deltaAngle << "\n";
+            //if(deltaAngle < (1*3.141592/180)){
+            if(deltaAngle < (0.017)){
+              vThControl = 0;
+              gotoLandmarkFirstTimeStep = GO_TO_LANDMARK_FIRST_TIME_STEP_GOTO_LANDMARK;
+              #ifdef DEBUG_CONTROL_TO_LANDMARK
+                std::cout << "Go to landmark first time - rotate done\n";
+              #endif
+            }
+            break;
+          }
+          case GO_TO_LANDMARK_FIRST_TIME_STEP_GOTO_LANDMARK:{
+            if(isNewReceivedRobotData){
+              isNewReceivedRobotData = false;
+              if(yRobot == yToRun){
+                if(xRobot < xToRun){
+                  angleRobotToLandmark = 0;
+                }
+                else{
+                  angleRobotToLandmark = 3.141592;
+                }
+              }
+              else if(xRobot == xToRun){
+                if(yRobot < yToRun){
+                  angleRobotToLandmark = 1.570796;
+                }
+                else{
+                  angleRobotToLandmark = 4.712388;
+                }
+              }
+              else if((xRobot < xToRun)&&(yRobot < yToRun)){
+                angleRobotToLandmark = atan((yToRun - yRobot)/(xToRun - xRobot));
+              }
+              else if((xRobot > xToRun)&&(yRobot < yToRun)){
+                angleRobotToLandmark = atan(abs(yToRun - yRobot)/(xToRun - xRobot));
+                angleRobotToLandmark = 3.141592 - angleRobotToLandmark;
+              }
+              else if((xRobot > xToRun)&&(yRobot > yToRun)){
+                angleRobotToLandmark = atan(abs(yToRun - yRobot)/abs(xToRun - xRobot));
+                angleRobotToLandmark = 3.141592 + angleRobotToLandmark;
+              }
+              else if((xRobot < xToRun)&&(yRobot > yToRun)){
+                angleRobotToLandmark = atan(abs(yToRun - yRobot)/abs(xToRun - xRobot));
+                angleRobotToLandmark = 6.283185 - angleRobotToLandmark;
+              }
+            }
+            
+            double deltaAngle = abs((double)(yawRobot - angleRobotToLandmark));
+            if(deltaAngle < (0.017)){
+              vThControl = 0;
+            }
+            else if(yawRobot < angleRobotToLandmark){
               if(deltaAngle <= 3.141592){
                 vThControl = 0.1;
               }
@@ -795,232 +928,510 @@ void ControlToLandmarkProcess(){
               }
             }
 
-            std::cout << "yawRobot: " << yawRobot << "\n";
-            std::cout << "angleRobotToLandmark: " << angleRobotToLandmark << "\n";
-            std::cout << "deltaAngle: " << deltaAngle << "\n";
-            std::cout << "vThControl: " << vThControl << "\n";
-            std::cout << "Angle robot to landmark: " << (angleRobotToLandmark*360/6.283185) << "\n";
-            gotoLandmarkFirstTimeStep = GO_TO_LANDMARK_FIRST_TIME_STEP_ROTATE_TO_LANDMARK;
+            vxControl = 0.1;
+
+            if(((xRobot >= (xToRun - 0.1))&&(xRobot <= (xToRun + 0.1)))&&((yRobot >= (yToRun - 0.1))&&(yRobot <= (yToRun + 0.1)))){
+              vxControl = 0;
+              vThControl = 0;
+              #ifdef DEBUG_CONTROL_TO_LANDMARK
+                std::cout << "Go to landmark first time - Robot move to point of landmark done\n";
+              #endif
+
+              int indexPath = pathAndLandmarkJson["pathAndLandmark"]["landmark"]["dat"][indexLMToRun]["i"];
+              double x1 = pathAndLandmarkJson["pathAndLandmark"]["path"]["dat"][indexPath]["d"][0];
+              double y1 = pathAndLandmarkJson["pathAndLandmark"]["path"]["dat"][indexPath]["d"][1];
+              double x2 = pathAndLandmarkJson["pathAndLandmark"]["path"]["dat"][indexPath]["d"][2];
+              double y2 = pathAndLandmarkJson["pathAndLandmark"]["path"]["dat"][indexPath]["d"][3];
+              double x0, y0;
+
+              if((xToRun == x1)&&(yToRun == y1)){
+                x0 = x2;
+                y0 = y2;
+              }
+              else if((xToRun == x2)&&(yToRun == y2)){
+                x0 = x1;
+                y0 = y1;
+              }
+              else{
+                std::cout << "Position of landmark no in any path\n";
+                gotoLandmarkProcessStep = GO_TO_LANDMARK_PROCESS_STEP_IDLE;
+                break;
+              }
+              // swap
+              x1 = x0;
+              x0 = xToRun;
+              double xVector = x1;
+              y1 = y0;
+              y0 = yToRun;
+              double yVector = y1;
+
+              if(y0 == yVector){
+                if(x0 < xVector){
+                  angleLandmark = 0;
+                }
+                else{
+                  angleLandmark = 3.141592;
+                }
+              }
+              else if(x0 == xVector){
+                if(y0 < yVector){
+                  angleLandmark = 1.570796;
+                }
+                else{
+                  angleLandmark = 4.712388;
+                }
+              }
+              else if((x0 < xVector)&&(y0 < yVector)){
+                angleLandmark = atan((yVector - y0)/(xVector - x0));
+              }
+              else if((x0 > xVector)&&(y0 < yVector)){
+                angleLandmark = atan(abs(yVector - y0)/(xVector - x0));
+                angleLandmark = 3.141592 - angleLandmark;
+              }
+              else if((x0 > xVector)&&(y0 > yVector)){
+                angleLandmark = atan(abs(yVector - y0)/abs(xVector - x0));
+                angleLandmark = 3.141592 + angleLandmark;
+              }
+              else if((x0 < xVector)&&(y0 > yVector)){
+                angleLandmark = atan(abs(yVector - y0)/abs(xVector - x0));
+                angleLandmark = 6.283185 - angleLandmark;
+              }
+
+              double deltaAngle = abs((double)(yawRobot - angleLandmark));
+
+              if(yawRobot < angleLandmark){
+                if(deltaAngle <= 3.141592){
+                  vThControl = 0.1;
+                }
+                else{
+                  vThControl = -0.1;
+                }
+              }
+              else{
+                if(deltaAngle <= 3.141592){
+                  vThControl = -0.1;
+                }
+                else{
+                  vThControl = 0.1;
+                }
+              }
+
+              gotoLandmarkFirstTimeStep = GO_TO_LANDMARK_FIRST_TIME_STEP_ROTATE_WITH_DIRECT_SAME_LANDMARK;
+            }
+            break;
           }
-          break;
+          case GO_TO_LANDMARK_FIRST_TIME_STEP_ROTATE_WITH_DIRECT_SAME_LANDMARK:{
+            double deltaAngle = abs((double)(yawRobot - angleLandmark));
+            yawRobot = yawRobot + (vThControl*20/1000);
+
+            if(deltaAngle < (0.017)){
+              vThControl = 0;
+              gotoLandmarkProcessStep = GO_TO_LANDMARK_PROCESS_STEP_IDLE;
+              indexLMCurrent = indexLMToRun;
+              #ifdef DEBUG_CONTROL_TO_LANDMARK
+                std::cout << "Go to landmark first time - go to landmark done\n";
+              #endif
+            }
+
+            break;
+          }
         }
-        case GO_TO_LANDMARK_FIRST_TIME_STEP_ROTATE_TO_LANDMARK:{
-          yawRobot = yawRobot + (vThControl*20/1000);
-          //std::cout << "yawRobot: " << yawRobot << "\n";
 
-          if(isNewReceivedRobotData){
-            isNewReceivedRobotData = false;
-            if(yRobot == yToRun){
-              if(xRobot < xToRun){
-                angleRobotToLandmark = 0;
+        std::this_thread::sleep_for(std::chrono::milliseconds(20));
+        break;
+      }
+      case GO_TO_LANDMARK_PROCESS_STEP_RUN_TO_LANDMARK:{
+        switch(gotoLandmarkStep){
+          case GO_TO_LANDMARK_STEP_FIND_PATH_TO_GO:{
+            uint8_t indexPathCurrent = pathAndLandmarkJson["pathAndLandmark"]["landmark"]["dat"][indexLMCurrent]["i"];
+            uint8_t indexPathToRun = pathAndLandmarkJson["pathAndLandmark"]["landmark"]["dat"][indexLMToRun]["i"];
+            uint8_t relationshipCount = pathAndLandmarkJson["pathAndLandmark"]["path"]["relationship"]["count"];
+            uint8_t totalPath = pathAndLandmarkJson["pathAndLandmark"]["path"]["total"];
+
+            //uint8_t pathAddingCount = 0;
+            uint8_t arrPathIndexAdding[10], pathAddingCount = 0;
+            uint8_t arrCheckRelationship[10][2];
+
+            // L1 -> L2
+            // L1 -> X1 -> L2
+            // L1 -> X1 -> X2 -> L2
+            // Loop for add sub path to go destination
+            bool isFindedPathToGoDestination = false;
+            while(pathAddingCount < (totalPath - 2)){
+              if(pathAddingCount == 0){
+                arrCheckRelationship[0][0] = indexPathCurrent;
+                arrCheckRelationship[0][1] = indexPathToRun;
+
+                bool isPathConnected = false;
+                // With L1 -> X1
+                // Check all relationship line
+                for(uint8_t relationShipIndex = 0; relationShipIndex < relationshipCount; relationShipIndex++){
+                  uint8_t countPathPresentOnRelationship = 0;
+                  uint8_t numPathOnRelationshipLine = pathAndLandmarkJson["pathAndLandmark"]["path"]["relationship"]["dat"][relationShipIndex][0];
+                  // With L1 -> X1
+                  // With each line to check presence of L1 and X1
+                  for(uint8_t k = 0; k < numPathOnRelationshipLine; k++){
+                    if((pathAndLandmarkJson["pathAndLandmark"]["path"]["relationship"]["dat"][relationShipIndex][k + 1] == arrCheckRelationship[0][0])||
+                      (pathAndLandmarkJson["pathAndLandmark"]["path"]["relationship"]["dat"][relationShipIndex][k + 1] == arrCheckRelationship[0][1])){
+                      
+                      countPathPresentOnRelationship++;
+                    }
+                  }
+                  if(countPathPresentOnRelationship == 2){
+                    isPathConnected = true;
+                    break;
+                  }
+                }
+                // If L1 -> X1 not connected -> Exit and adding sub path
+                if(isPathConnected){
+                  isFindedPathToGoDestination = true;
+                  std::cout << "Finded path to go destination\n";
+                  break;
+                }
+                else{
+                  pathAddingCount++;
+                  std::cout << "Path adding: " << std::to_string(pathAddingCount) << "\n";
+                }
               }
               else{
-                angleRobotToLandmark = 3.141592;
+                // Init array path adding
+                for(uint8_t i = 0; i < pathAddingCount; i++){
+                  arrPathIndexAdding[i] = 0;
+                }
+
+                bool isRunning_t = true;
+                while(isRunning_t){
+                  // Check for the same two path
+                  bool twoPathIsSame = false;
+                  uint8_t arrPathToCheckSame[16];
+                  arrPathToCheckSame[0] = indexPathCurrent;
+                  for(uint8_t i = 0; i < pathAddingCount; i++){
+                    arrPathToCheckSame[i + 1] = arrPathIndexAdding[i];
+                  }
+                  arrPathToCheckSame[pathAddingCount + 1] = indexPathToRun;
+                  for(uint8_t i = 0; i < (pathAddingCount + 2 - 1); i++){
+                    for(uint8_t j = (i + 1); j < (pathAddingCount + 2); j++){
+                      if(arrPathToCheckSame[i] == arrPathToCheckSame[j]){
+                        twoPathIsSame = true;
+                        break;
+                      }
+                    }
+                    if(twoPathIsSame) break;
+                  }
+
+                  if(twoPathIsSame){
+                    for(uint8_t i = (pathAddingCount - 1); i >= 0; i--){
+                      arrPathIndexAdding[i]++;
+                      if(arrPathIndexAdding[i] == totalPath){
+                        arrPathIndexAdding[i] = 0;
+
+                        if(pathAddingCount == (totalPath - 1)){
+                          if(i == 0){
+                            isRunning_t = false;
+                            break;
+                          }
+                        }
+                        else if(i == 0){
+                          pathAddingCount++;
+                          for(uint8_t i = 0; i < pathAddingCount; i++){
+                            arrPathIndexAdding[i] = 0;
+                          }
+                        }
+                      }
+                      else{
+                        break;
+                      }
+                    }
+                  }
+                  else{
+                    arrCheckRelationship[0][0] = indexPathCurrent;
+                    arrCheckRelationship[0][1] = arrPathIndexAdding[0];
+
+                    //std::cout << "Path check: " << std::to_string(arrCheckRelationship[0][0]) << "->" << std::to_string(arrCheckRelationship[0][1]) + "->";
+
+                    for(uint8_t i = 0; i < (pathAddingCount - 1); i++){
+                      arrCheckRelationship[i + 1][0] = arrPathIndexAdding[i];
+                      arrCheckRelationship[i + 1][1] = arrPathIndexAdding[i + 1];
+
+                      //std::cout << std::to_string(arrCheckRelationship[i + 1][1]) + "->";
+                    }
+
+                    arrCheckRelationship[pathAddingCount][0] = arrPathIndexAdding[pathAddingCount - 1];
+                    arrCheckRelationship[pathAddingCount][1] = indexPathToRun;
+                    //std::cout << std::to_string(arrCheckRelationship[pathAddingCount][1]) << "\n";
+
+                    uint8_t arrCheckRelationshipCount = pathAddingCount + 1;
+                    // L1 -> X1 -> L2
+                    // Loop for check L1 -> X1 and after check X1 -> L2
+                    bool isNeedAddSubPath = false;
+                    for(uint8_t indexPathToPath = 0; indexPathToPath < (pathAddingCount + 1); indexPathToPath++){
+                      bool isPathConnected = false;
+                      // With L1 -> X1
+                      // Check all relationship line
+                      for(uint8_t relationShipIndex = 0; relationShipIndex < relationshipCount; relationShipIndex++){
+                        uint8_t countPathPresentOnRelationship = 0;
+                        uint8_t numPathOnRelationshipLine = pathAndLandmarkJson["pathAndLandmark"]["path"]["relationship"]["dat"][relationShipIndex][0];
+                        // With L1 -> X1
+                        // With each line to check presence of L1 and X1
+                        for(uint8_t k = 0; k < numPathOnRelationshipLine; k++){
+                          if((pathAndLandmarkJson["pathAndLandmark"]["path"]["relationship"]["dat"][relationShipIndex][k + 1] == arrCheckRelationship[indexPathToPath][0])||
+                            (pathAndLandmarkJson["pathAndLandmark"]["path"]["relationship"]["dat"][relationShipIndex][k + 1] == arrCheckRelationship[indexPathToPath][1])){
+                            
+                            countPathPresentOnRelationship++;
+                          }
+                        }
+                        if(countPathPresentOnRelationship == 2){
+                          isPathConnected = true;
+                          break;
+                        }
+                      }
+                      // If L1 -> X1 not connected -> Exit and adding sub path
+                      if(!isPathConnected){
+                        isNeedAddSubPath = true;
+                        break;
+                      }
+                    }
+
+                    if(!isNeedAddSubPath){
+                      isFindedPathToGoDestination = true;
+                      std::cout << "Finded path to go destination\n";
+                      break;
+                    }
+
+                    //pathAddingCount++;
+                    //std::cout << "Path adding: " << std::to_string(pathAddingCount) << "\n";
+                    for(uint8_t i = (pathAddingCount - 1); i >= 0; i--){
+                      arrPathIndexAdding[i]++;
+                      if(arrPathIndexAdding[i] == totalPath){
+                        arrPathIndexAdding[i] = 0;
+
+                        if(pathAddingCount == (totalPath - 1)){
+                          if(i == 0){
+                            isRunning_t = false;
+                            break;
+                          }
+                        }
+                        else if(i == 0){
+                          pathAddingCount++;
+                          for(uint8_t i = 0; i < pathAddingCount; i++){
+                            arrPathIndexAdding[i] = 0;
+                          }
+                        }
+                      }
+                      else{
+                        break;
+                      }
+                    }
+                  }
+                }
+
+                break;
               }
             }
-            else if(xRobot == xToRun){
-              if(yRobot < yToRun){
-                angleRobotToLandmark = 1.570796;
+            
+            if(isFindedPathToGoDestination){
+              std::cout << "Get path done, go to set point array on path\n";
+              pathIdArrRunningLength = pathAddingCount + 2;
+              pathIdArrRunning[0] = indexPathCurrent;
+              for(uint8_t i = 0; i < pathAddingCount; i++){
+                pathIdArrRunning[i + 1] = arrPathIndexAdding[i];
               }
-              else{
-                angleRobotToLandmark = 4.712388;
-              }
-            }
-            else if((xRobot < xToRun)&&(yRobot < yToRun)){
-              angleRobotToLandmark = atan((yToRun - yRobot)/(xToRun - xRobot));
-            }
-            else if((xRobot > xToRun)&&(yRobot < yToRun)){
-              angleRobotToLandmark = atan(abs(yToRun - yRobot)/(xToRun - xRobot));
-              angleRobotToLandmark = 3.141592 - angleRobotToLandmark;
-            }
-            else if((xRobot > xToRun)&&(yRobot > yToRun)){
-              angleRobotToLandmark = atan(abs(yToRun - yRobot)/abs(xToRun - xRobot));
-              angleRobotToLandmark = 3.141592 + angleRobotToLandmark;
-            }
-            else if((xRobot < xToRun)&&(yRobot > yToRun)){
-              angleRobotToLandmark = atan(abs(yToRun - yRobot)/abs(xToRun - xRobot));
-              angleRobotToLandmark = 6.283185 - angleRobotToLandmark;
-            }
-          }
-          
-          double deltaAngle = abs((double)(yawRobot - angleRobotToLandmark));
-          //std::cout << "deltaAngle: " << deltaAngle << "\n";
-          //if(deltaAngle < (1*3.141592/180)){
-          if(deltaAngle < (0.017)){
-            vThControl = 0;
-            gotoLandmarkFirstTimeStep = GO_TO_LANDMARK_FIRST_TIME_STEP_GOTO_LANDMARK;
-            #ifdef DEBUG_CONTROL_TO_LANDMARK
-              std::cout << "Go to landmark first time - rotate done\n";
-            #endif
-          }
-          break;
-        }
-        case GO_TO_LANDMARK_FIRST_TIME_STEP_GOTO_LANDMARK:{
-          if(isNewReceivedRobotData){
-            isNewReceivedRobotData = false;
-            if(yRobot == yToRun){
-              if(xRobot < xToRun){
-                angleRobotToLandmark = 0;
-              }
-              else{
-                angleRobotToLandmark = 3.141592;
-              }
-            }
-            else if(xRobot == xToRun){
-              if(yRobot < yToRun){
-                angleRobotToLandmark = 1.570796;
-              }
-              else{
-                angleRobotToLandmark = 4.712388;
-              }
-            }
-            else if((xRobot < xToRun)&&(yRobot < yToRun)){
-              angleRobotToLandmark = atan((yToRun - yRobot)/(xToRun - xRobot));
-            }
-            else if((xRobot > xToRun)&&(yRobot < yToRun)){
-              angleRobotToLandmark = atan(abs(yToRun - yRobot)/(xToRun - xRobot));
-              angleRobotToLandmark = 3.141592 - angleRobotToLandmark;
-            }
-            else if((xRobot > xToRun)&&(yRobot > yToRun)){
-              angleRobotToLandmark = atan(abs(yToRun - yRobot)/abs(xToRun - xRobot));
-              angleRobotToLandmark = 3.141592 + angleRobotToLandmark;
-            }
-            else if((xRobot < xToRun)&&(yRobot > yToRun)){
-              angleRobotToLandmark = atan(abs(yToRun - yRobot)/abs(xToRun - xRobot));
-              angleRobotToLandmark = 6.283185 - angleRobotToLandmark;
-            }
-          }
-          
-          double deltaAngle = abs((double)(yawRobot - angleRobotToLandmark));
-          if(deltaAngle < (0.017)){
-            vThControl = 0;
-          }
-          else if(yawRobot < angleRobotToLandmark){
-            if(deltaAngle <= 3.141592){
-              vThControl = 0.1;
+              pathIdArrRunning[pathAddingCount + 1] = indexPathToRun;
+
+              indexPathIdRunning = 0;
+              gotoLandmarkStep = GO_TO_LANDMARK_STEP_GET_POINT_ARRAY_ON_PATH;
             }
             else{
-              vThControl = -0.1;
+              gotoLandmarkProcessStep = GO_TO_LANDMARK_PROCESS_STEP_IDLE;
+              std::cout<<"Not finded path to go destination\n";
             }
+            break;
           }
-          else{
-            if(deltaAngle <= 3.141592){
-              vThControl = -0.1;
+          case GO_TO_LANDMARK_STEP_GET_POINT_ARRAY_ON_PATH:{
+            uint8_t pointSize = pathAndLandmarkJson["pathAndLandmark"]["path"]["dat"][pathIdArrRunning[indexPathIdRunning]]["a"][0][0];
+            
+            // Convert xToRun and yToRun to mmm
+            double temp = xToRun*1000;
+            int32_t xToRun_t = temp;
+            temp = yToRun*1000;
+            int32_t yToRun_t = temp;
+
+            std::cout << "Getpoint-Robot Position: " << std::to_string(xToRun) << std::to_string(yToRun) << "\n";
+            if((xToRun_t == pathAndLandmarkJson["pathAndLandmark"]["path"]["dat"][pathIdArrRunning[indexPathIdRunning]]["a"][1][0])&&
+               (yToRun_t == pathAndLandmarkJson["pathAndLandmark"]["path"]["dat"][pathIdArrRunning[indexPathIdRunning]]["a"][1][1])){
+              for(uint8_t i = 0; i < pointSize; i++){
+                pointArrRunning[i][0] = pathAndLandmarkJson["pathAndLandmark"]["path"]["dat"][pathIdArrRunning[indexPathIdRunning]]["a"][1 + i][0];
+                pointArrRunning[i][1] = pathAndLandmarkJson["pathAndLandmark"]["path"]["dat"][pathIdArrRunning[indexPathIdRunning]]["a"][1 + i][1];
+              }
+              pointArrRunningLength = pointSize;
+            }
+            else if((xToRun_t == pathAndLandmarkJson["pathAndLandmark"]["path"]["dat"][pathIdArrRunning[indexPathIdRunning]]["a"][1 + pointSize - 1][0])&&
+                    (yToRun_t == pathAndLandmarkJson["pathAndLandmark"]["path"]["dat"][pathIdArrRunning[indexPathIdRunning]]["a"][1 + pointSize - 1][1])){
+              for(uint8_t i = 0; i < pointSize; i++){
+                pointArrRunning[i][0] = pathAndLandmarkJson["pathAndLandmark"]["path"]["dat"][pathIdArrRunning[indexPathIdRunning]]["a"][1 + pointSize - i - 1][0];
+                pointArrRunning[i][1] = pathAndLandmarkJson["pathAndLandmark"]["path"]["dat"][pathIdArrRunning[indexPathIdRunning]]["a"][1 + pointSize - i - 1][1];
+              }
+              pointArrRunningLength = pointSize;
             }
             else{
-              vThControl = 0.1;
-            }
-          }
-
-          vxControl = 0.1;
-
-          if(((xRobot >= (xToRun - 0.05))&&(xRobot <= (xToRun + 0.05)))&&((yRobot >= (yToRun - 0.05))&&(yRobot <= (yToRun + 0.05)))){
-            vxControl = 0;
-            vThControl = 0;
-            #ifdef DEBUG_CONTROL_TO_LANDMARK
-              std::cout << "Go to landmark first time - Robot move to point of landmark done\n";
-            #endif
-
-            int indexPath = pathAndLandmarkJson["pathAndLandmark"]["landmark"]["dat"][indexLMToRun]["i"];
-            double x1 = pathAndLandmarkJson["pathAndLandmark"]["path"]["dat"][indexPath]["d"][0];
-            double y1 = pathAndLandmarkJson["pathAndLandmark"]["path"]["dat"][indexPath]["d"][1];
-            double x2 = pathAndLandmarkJson["pathAndLandmark"]["path"]["dat"][indexPath]["d"][2];
-            double y2 = pathAndLandmarkJson["pathAndLandmark"]["path"]["dat"][indexPath]["d"][3];
-            double x0, y0;
-
-            if((xToRun == x1)&&(yToRun == y1)){
-              x0 = x2;
-              y0 = y2;
-            }
-            else if((xToRun == x2)&&(yToRun == y2)){
-              x0 = x1;
-              y0 = y1;
-            }
-            else{
-              std::cout << "Position of landmark no in any path\n";
+              std::cout << "Not find point array to running\n";
+              vxControl = 0;
+              vThControl = 0;
               gotoLandmarkProcessStep = GO_TO_LANDMARK_PROCESS_STEP_IDLE;
               break;
             }
-            // swap
-            x1 = x0;
-            x0 = xToRun;
-            xToRun = x1;
-            y1 = y0;
-            y0 = yToRun;
-            yToRun = y1;
+            
+            isNewReceivedRobotData = true;    // Set variable to calculate the angle robot to the point
+            // Assign new point to running
+            indexPointRunning = 0;
+            std::cout << "Getpoint-Point array running: " << std::to_string(pointArrRunning[indexPointRunning][0]) << "-" << std::to_string(pointArrRunning[indexPointRunning][1]) << "\n";
+            xToRun = double(pointArrRunning[indexPointRunning][0]/1000);
+            yToRun = double(pointArrRunning[indexPointRunning][1]/1000);
+            std::cout << "Getpoint-Position to running: " << std::to_string(xToRun) << "-" << std::to_string(yToRun) << "\n";
 
-            if(y0 == yToRun){
-              if(x0 < xToRun){
-                angleLandmark = 0;
+            // Based on path type to set different velocity
+            std::string pathType = pathAndLandmarkJson["pathAndLandmark"]["path"]["dat"][pathIdArrRunning[indexPathIdRunning]]["n"];
+            if(pathType.at(0) == 'L'){
+              vxSet = 0.1;
+            }
+            else if(pathType.at(0) == 'B'){
+              vxSet = 0.05;
+            }
+            else{
+              // Error
+            }
+  
+            std::cout << "Get point array done, go to running...\n";
+            gotoLandmarkStep = GO_TO_LANDMARK_STEP_RUNNING_PROCESS;
+            break;
+          }
+          case GO_TO_LANDMARK_STEP_RUNNING_PROCESS:{
+            if(isNewReceivedRobotData){
+              isNewReceivedRobotData = false;
+              if(yRobot == yToRun){
+                if(xRobot < xToRun){
+                  angleRobotToPoint = 0;
+                }
+                else{
+                  angleRobotToPoint = 3.141592;
+                }
               }
-              else{
-                angleLandmark = 3.141592;
+              else if(xRobot == xToRun){
+                if(yRobot < yToRun){
+                  angleRobotToPoint = 1.570796;
+                }
+                else{
+                  angleRobotToPoint = 4.712388;
+                }
+              }
+              else if((xRobot < xToRun)&&(yRobot < yToRun)){
+                angleRobotToPoint = atan((yToRun - yRobot)/(xToRun - xRobot));
+              }
+              else if((xRobot > xToRun)&&(yRobot < yToRun)){
+                angleRobotToPoint = atan(abs(yToRun - yRobot)/(xToRun - xRobot));
+                angleRobotToPoint = 3.141592 - angleRobotToPoint;
+              }
+              else if((xRobot > xToRun)&&(yRobot > yToRun)){
+                angleRobotToPoint = atan(abs(yToRun - yRobot)/abs(xToRun - xRobot));
+                angleRobotToPoint = 3.141592 + angleRobotToPoint;
+              }
+              else if((xRobot < xToRun)&&(yRobot > yToRun)){
+                angleRobotToPoint = atan(abs(yToRun - yRobot)/abs(xToRun - xRobot));
+                angleRobotToPoint = 6.283185 - angleRobotToPoint;
               }
             }
-            else if(x0 == xToRun){
-              if(y0 < yToRun){
-                angleLandmark = 1.570796;
-              }
-              else{
-                angleLandmark = 4.712388;
-              }
+            
+            double deltaAngle = abs((double)(yawRobot - angleRobotToPoint));
+            
+            yawRobot = yawRobot + (vThControl*20/1000);
+            double deltaAngle_t;
+            if(deltaAngle <= 3.14159265){
+              deltaAngle_t = deltaAngle;
             }
-            else if((x0 < xToRun)&&(y0 < yToRun)){
-              angleLandmark = atan((yToRun - y0)/(xToRun - x0));
+            else{
+              deltaAngle_t = (3.14159265*2) - deltaAngle;
             }
-            else if((x0 > xToRun)&&(y0 < yToRun)){
-              angleLandmark = atan(abs(yToRun - y0)/(xToRun - x0));
-              angleLandmark = 3.141592 - angleLandmark;
+            if(deltaAngle <= DegToRad(5)){
+              vThSet = 0.07;
             }
-            else if((x0 > xToRun)&&(y0 > yToRun)){
-              angleLandmark = atan(abs(yToRun - y0)/abs(xToRun - x0));
-              angleLandmark = 3.141592 + angleLandmark;
+            else if(deltaAngle <= DegToRad(10)){// 0.04
+              vThSet = 0.11;
             }
-            else if((x0 < xToRun)&&(y0 > yToRun)){
-              angleLandmark = atan(abs(yToRun - y0)/abs(xToRun - x0));
-              angleLandmark = 6.283185 - angleLandmark;
+            else if(deltaAngle <= DegToRad(15)){// 0.05
+              vThSet = 0.15;
             }
-
-            double deltaAngle = abs((double)(yawRobot - angleLandmark));
-
-            if(yawRobot < angleLandmark){
+            else if(deltaAngle <= DegToRad(20)){// 0.06
+              vThSet = 0.21;
+            }
+            else if(deltaAngle <= DegToRad(25)){// 0.07
+              vThSet = 0.28;
+            }
+            else if(deltaAngle <= DegToRad(30)){// 0.08
+              vThSet = 0.36;
+            }
+            else{
+              vThSet = 0.4;
+            }
+            std::cout<<"Delta angle: " << std::to_string(deltaAngle) << " - " << std::to_string(deltaAngle_t) << "\n";
+            std::cout<<"vThSet: " << std::to_string(vThSet) << "\n";
+            vThSet = 0.1;
+            if(deltaAngle < (0.017)){
+              vThControl = 0;
+            }
+            else if(yawRobot < angleRobotToPoint){
               if(deltaAngle <= 3.141592){
-                vThControl = 0.1;
+                vThControl = vThSet;
               }
               else{
-                vThControl = -0.1;
+                vThControl = -vThSet;
               }
             }
             else{
               if(deltaAngle <= 3.141592){
-                vThControl = -0.1;
+                vThControl = -vThSet;
               }
               else{
-                vThControl = 0.1;
+                vThControl = vThSet;
               }
             }
 
-            gotoLandmarkFirstTimeStep = GO_TO_LANDMARK_FIRST_TIME_STEP_ROTATE_WITH_DIRECT_SAME_LANDMARK;
-          }
-          break;
-        }
-        case GO_TO_LANDMARK_FIRST_TIME_STEP_ROTATE_WITH_DIRECT_SAME_LANDMARK:{
-          double deltaAngle = abs((double)(yawRobot - angleLandmark));
-          yawRobot = yawRobot + (vThControl*20/1000);
+            vxControl = 0.02;
 
-          if(deltaAngle < (0.017)){
-            vThControl = 0;
-            gotoLandmarkProcessStep = GO_TO_LANDMARK_PROCESS_STEP_IDLE;
-            #ifdef DEBUG_CONTROL_TO_LANDMARK
-              std::cout << "Go to landmark first time - go to landmark done\n";
-            #endif
-          }
+            //std::cout << "Pos: " << std::to_string(xRobot) << "-" << std::to_string(yRobot) << "-" << std::to_string(xToRun) << "-" << std::to_string(yToRun) << "\n";
+            if(((xRobot >= (xToRun - 0.05))&&(xRobot <= (xToRun + 0.05)))&&((yRobot >= (yToRun - 0.05))&&(yRobot <= (yToRun + 0.05)))){
+              #ifdef DEBUG_CONTROL_TO_LANDMARK
+                std::cout << "Running to point finish, index point: " << std::to_string(indexPointRunning) <<"\n";
+              #endif
 
-          break;
+              indexPointRunning++;
+              if(indexPointRunning >= pointArrRunningLength){
+                indexPointRunning = 0;
+                indexPathIdRunning++;
+
+                vxControl = 0;
+                vThControl = 0;
+                if(indexPathIdRunning >= pathIdArrRunningLength){
+                  std::cout << "Go to landmark done!\n";
+                  gotoLandmarkProcessStep = GO_TO_LANDMARK_PROCESS_STEP_IDLE;
+                }
+                else{
+                  gotoLandmarkStep = GO_TO_LANDMARK_STEP_GET_POINT_ARRAY_ON_PATH;
+                }
+              }
+              else{
+                xToRun = pointArrRunning[indexPointRunning][0]/1000;
+                yToRun = pointArrRunning[indexPointRunning][1]/1000;
+
+                std::cout << "Running-Position to running: " << std::to_string(xToRun) << std::to_string(yToRun) << "\n";
+              }
+            }
+            break;
+          }
         }
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(20));
+        break;
       }
-
-      std::this_thread::sleep_for(std::chrono::milliseconds(20));
     }
   }
 }
@@ -1104,4 +1515,8 @@ std::string exec(const char* cmd) {
         std::cout << buffer.data();
     }
     return result;
+}
+
+double DegToRad(double val){
+  return ((val*(2*3.14159265))/360);
 }
