@@ -57,6 +57,7 @@ void ControlToLandmarkProcess();
 
 std::string exec(const char* cmd);
 double DegToRad(double val);
+void ConfigLogFile();
 
 using json = nlohmann::json;
 
@@ -1519,4 +1520,47 @@ std::string exec(const char* cmd) {
 
 double DegToRad(double val){
   return ((val*(2*3.14159265))/360);
+}
+
+void ConfigLogFile(){
+  time_t now = time(0);
+  tm *ltm = localtime(&now);
+
+  std::string strFile;
+  std::string monthStr, dayStr, hourStr, minStr, secondsStr;
+  if((1 + ltm->tm_mon) < 10){
+    monthStr = "0" + std::to_string(1 + ltm->tm_mon);
+  }
+  else{
+    monthStr = std::to_string(1 + ltm->tm_mon);
+  }
+  if(ltm->tm_mday < 10){
+    dayStr = "0" + std::to_string(ltm->tm_mday);
+  }
+  else{
+    dayStr = std::to_string(ltm->tm_mday);
+  }
+  if(ltm->tm_hour < 10){
+    hourStr = "0" + std::to_string(ltm->tm_hour);
+  }
+  else{
+    hourStr = std::to_string(ltm->tm_hour);
+  }
+  if(ltm->tm_min < 10){
+    minStr = "0" + std::to_string(ltm->tm_min);
+  }
+  else{
+    minStr = std::to_string(ltm->tm_min);
+  }
+  if(ltm->tm_sec < 10){
+    secondsStr = "0" + std::to_string(ltm->tm_sec);
+  }
+  else{
+    secondsStr = std::to_string(ltm->tm_sec);
+  }
+
+  strFile = std::to_string(1900 + ltm->tm_year) + 
+            monthStr + dayStr + hourStr + minStr + secondsStr;
+
+  std::freopen( strFile.c_str(), "w", stdout );
 }
