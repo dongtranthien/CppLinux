@@ -731,6 +731,8 @@ void ControlDemo(){
 
 void ControlToLandmarkProcess(){
   uint64_t startTime = micros();
+  double deltaAnglePre;
+  bool isGetFirstDeltaAngle = false;
   while(true){
     switch(gotoLandmarkProcessStep){
       case GO_TO_LANDMARK_PROCESS_STEP_IDLE:{
@@ -798,10 +800,10 @@ void ControlToLandmarkProcess(){
                 angleRobotToLandmark = 6.283185 - angleRobotToLandmark;
               }
 
-              double deltaAngle = abs((double)(yawRobot - angleRobotToLandmark));
-
+              double deltaAngleAbs = abs((double)(yawRobot - angleRobotToLandmark));
+              deltaAnglePre = ((double)(yawRobot - angleRobotToLandmark));
               if(yawRobot < angleRobotToLandmark){
-                if(deltaAngle <= 3.141592){
+                if(deltaAngleAbs <= 3.141592){
                   vThControl = 0.1;
                 }
                 else{
@@ -809,7 +811,7 @@ void ControlToLandmarkProcess(){
                 }
               }
               else{
-                if(deltaAngle <= 3.141592){
+                if(deltaAngleAbs <= 3.141592){
                   vThControl = -0.1;
                 }
                 else{
@@ -819,7 +821,7 @@ void ControlToLandmarkProcess(){
 
               std::cout << "yawRobot: " << yawRobot << ""<<std::endl;
               std::cout << "angleRobotToLandmark: " << angleRobotToLandmark << ""<<std::endl;
-              std::cout << "deltaAngle: " << deltaAngle << ""<<std::endl;
+              std::cout << "deltaAngleAbs: " << deltaAngleAbs << ""<<std::endl;
               std::cout << "vThControl: " << vThControl << ""<<std::endl;
               std::cout << "Angle robot to landmark: " << (angleRobotToLandmark*360/6.283185) << ""<<std::endl;
               gotoLandmarkFirstTimeStep = GO_TO_LANDMARK_FIRST_TIME_STEP_ROTATE_TO_LANDMARK;
@@ -865,19 +867,41 @@ void ControlToLandmarkProcess(){
               }
             }
             
-            double deltaAngle = abs((double)(yawRobot - angleRobotToLandmark));
-            //std::cout << "deltaAngle: " << deltaAngle << ""<<std::endl;
+            double deltaAngleAbs = abs((double)(yawRobot - angleRobotToLandmark));
+            double deltaAngle = ((double)(yawRobot - angleRobotToLandmark));
+
+            if(yawRobot < angleRobotToLandmark){
+              if(deltaAngleAbs <= 3.141592){
+                vThControl = 0.1;
+              }
+              else{
+                vThControl = -0.1;
+              }
+            }
+            else{
+              if(deltaAngleAbs <= 3.141592){
+                vThControl = -0.1;
+              }
+              else{
+                vThControl = 0.1;
+              }
+            }
+
             uint64_t elapsedTime = micros();
             long long microseconds = elapsedTime - startTime;
             startTime = elapsedTime;
-            std::cout << "GoFLM-" << yawRobot << "-" << angleRobotToLandmark << "-" << deltaAngle << "-" << microseconds <<std::endl;
-            //if(deltaAngle < (1*3.141592/180)){
-            if(deltaAngle < (0.017)){
+            std::cout << "GoFLM-" << yawRobot << "-" << angleRobotToLandmark << "-" << deltaAngleAbs << "-" << microseconds <<std::endl;
+            //if(deltaAngleAbs < (1*3.141592/180)){
+            if((deltaAngleAbs < (0.017))||((deltaAngle*deltaAnglePre) <= 0)){
+            //if(false){
               vThControl = 0;
               gotoLandmarkFirstTimeStep = GO_TO_LANDMARK_FIRST_TIME_STEP_GOTO_LANDMARK;
               #ifdef DEBUG_CONTROL_TO_LANDMARK
                 std::cout << "Go to landmark first time - rotate done"<<std::endl;
               #endif
+            }
+            else{
+              deltaAnglePre = deltaAngle;
             }
             break;
           }
@@ -917,12 +941,12 @@ void ControlToLandmarkProcess(){
               }
             }
             
-            double deltaAngle = abs((double)(yawRobot - angleRobotToLandmark));
-            if(deltaAngle < (0.017)){
+            double deltaAngleAbs = abs((double)(yawRobot - angleRobotToLandmark));
+            if(deltaAngleAbs < (0.017)){
               vThControl = 0;
             }
             else if(yawRobot < angleRobotToLandmark){
-              if(deltaAngle <= 3.141592){
+              if(deltaAngleAbs <= 3.141592){
                 vThControl = 0.1;
               }
               else{
@@ -930,7 +954,7 @@ void ControlToLandmarkProcess(){
               }
             }
             else{
-              if(deltaAngle <= 3.141592){
+              if(deltaAngleAbs <= 3.141592){
                 vThControl = -0.1;
               }
               else{
@@ -1007,10 +1031,10 @@ void ControlToLandmarkProcess(){
                 angleLandmark = 6.283185 - angleLandmark;
               }
 
-              double deltaAngle = abs((double)(yawRobot - angleLandmark));
+              deltaAngleAbs = abs((double)(yawRobot - angleLandmark));
 
               if(yawRobot < angleLandmark){
-                if(deltaAngle <= 3.141592){
+                if(deltaAngleAbs <= 3.141592){
                   vThControl = 0.1;
                 }
                 else{
@@ -1018,7 +1042,7 @@ void ControlToLandmarkProcess(){
                 }
               }
               else{
-                if(deltaAngle <= 3.141592){
+                if(deltaAngleAbs <= 3.141592){
                   vThControl = -0.1;
                 }
                 else{
@@ -1031,12 +1055,12 @@ void ControlToLandmarkProcess(){
             break;
           }
           case GO_TO_LANDMARK_FIRST_TIME_STEP_ROTATE_WITH_DIRECT_SAME_LANDMARK:{
-            double deltaAngle = abs((double)(yawRobot - angleLandmark));
+            double deltaAngleAbs = abs((double)(yawRobot - angleLandmark));
             yawRobot = yawRobot + (vThControl*20/1000);
 
-            std::cout << "GoFLMA-" << yawRobot << "-" << angleLandmark << "-" << deltaAngle << ""<<std::endl;
+            std::cout << "GoFLMA-" << yawRobot << "-" << angleLandmark << "-" << deltaAngleAbs << ""<<std::endl;
 
-            if(deltaAngle < (0.017)){
+            if(deltaAngleAbs < (0.017)){
               vThControl = 0;
               gotoLandmarkProcessStep = GO_TO_LANDMARK_PROCESS_STEP_IDLE;
               indexLMCurrent = indexLMToRun;
@@ -1314,6 +1338,7 @@ void ControlToLandmarkProcess(){
             }
   
             std::cout << "Get point array done, go to running..."<<std::endl;
+            isGetFirstDeltaAngle = true;
             gotoLandmarkStep = GO_TO_LANDMARK_STEP_RUNNING_PROCESS;
             break;
           }
@@ -1353,45 +1378,49 @@ void ControlToLandmarkProcess(){
               }
             }
             
-            double deltaAngle = abs((double)(yawRobot - angleRobotToPoint));
-            
+            double deltaAngleAbs = abs((double)(yawRobot - angleRobotToPoint));
+            double deltaAngle = ((double)(yawRobot - angleRobotToPoint));
+            if(isGetFirstDeltaAngle){
+              isGetFirstDeltaAngle = false;
+              deltaAnglePre = deltaAngle;
+            }
             yawRobot = yawRobot + (vThControl*20/1000);
             double deltaAngle_t;
-            if(deltaAngle <= 3.14159265){
-              deltaAngle_t = deltaAngle;
+            if(deltaAngleAbs <= 3.14159265){
+              deltaAngle_t = deltaAngleAbs;
             }
             else{
-              deltaAngle_t = (3.14159265*2) - deltaAngle;
+              deltaAngle_t = (3.14159265*2) - deltaAngleAbs;
             }
-            if(deltaAngle <= DegToRad(5)){
+            if(deltaAngleAbs <= DegToRad(5)){
               vThSet = 0.07;
             }
-            else if(deltaAngle <= DegToRad(10)){// 0.04
+            else if(deltaAngleAbs <= DegToRad(10)){// 0.04
               vThSet = 0.11;
             }
-            else if(deltaAngle <= DegToRad(15)){// 0.05
+            else if(deltaAngleAbs <= DegToRad(15)){// 0.05
               vThSet = 0.15;
             }
-            else if(deltaAngle <= DegToRad(20)){// 0.06
+            else if(deltaAngleAbs <= DegToRad(20)){// 0.06
               vThSet = 0.21;
             }
-            else if(deltaAngle <= DegToRad(25)){// 0.07
+            else if(deltaAngleAbs <= DegToRad(25)){// 0.07
               vThSet = 0.28;
             }
-            else if(deltaAngle <= DegToRad(30)){// 0.08
+            else if(deltaAngleAbs <= DegToRad(30)){// 0.08
               vThSet = 0.36;
             }
             else{
               vThSet = 0.4;
             }
-            std::cout<<"Delta angle: " << std::to_string(deltaAngle) << " - " << std::to_string(deltaAngle_t) << ""<<std::endl;
-            std::cout<<"vThSet: " << std::to_string(vThSet) << ""<<std::endl;
+            std::cout<<"Delta angle: " << std::to_string(deltaAngleAbs) << " - " << std::to_string(deltaAngle_t) << " - "<< std::to_string(vThSet) << " - "<< std::to_string(deltaAngle) << " - "<< std::to_string(deltaAnglePre) << " - " << std::to_string(angleRobotToPoint) << std::endl;
+            //std::cout<<"vThSet: " << std::to_string(vThSet) << ""<<std::endl;
             vThSet = 0.1;
-            if(deltaAngle < (0.017)){
+            if((deltaAngleAbs < (0.017))||((deltaAngle*deltaAnglePre) <= 0)){
               vThControl = 0;
             }
             else if(yawRobot < angleRobotToPoint){
-              if(deltaAngle <= 3.141592){
+              if(deltaAngleAbs <= 3.141592){
                 vThControl = vThSet;
               }
               else{
@@ -1399,17 +1428,18 @@ void ControlToLandmarkProcess(){
               }
             }
             else{
-              if(deltaAngle <= 3.141592){
+              if(deltaAngleAbs <= 3.141592){
                 vThControl = -vThSet;
               }
               else{
                 vThControl = vThSet;
               }
             }
+            deltaAnglePre = deltaAngle;
 
             vxControl = 0.02;
 
-            //std::cout << "Pos: " << std::to_string(xRobot) << "-" << std::to_string(yRobot) << "-" << std::to_string(xToRun) << "-" << std::to_string(yToRun) << ""<<std::endl;
+            std::cout << "Pos: " << std::to_string(xRobot) << "-" << std::to_string(yRobot) << "-" << std::to_string(xToRun) << "-" << std::to_string(yToRun) << std::endl;
             if(((xRobot >= (xToRun - 0.05))&&(xRobot <= (xToRun + 0.05)))&&((yRobot >= (yToRun - 0.05))&&(yRobot <= (yToRun + 0.05)))){
               #ifdef DEBUG_CONTROL_TO_LANDMARK
                 std::cout << "Running to point finish, index point: " << std::to_string(indexPointRunning) <<""<<std::endl;
