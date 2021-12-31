@@ -872,8 +872,7 @@ void ControlToLandmarkProcess(){
             startTime = elapsedTime;
             std::cout << "GoFLM-" << yawRobot << "-" << angleRobotToLandmark << "-" << deltaAngle << "-" << microseconds <<std::endl;
             //if(deltaAngle < (1*3.141592/180)){
-            //if(deltaAngle < (0.017)){
-            if(false){
+            if(deltaAngle < (0.017)){
               vThControl = 0;
               gotoLandmarkFirstTimeStep = GO_TO_LANDMARK_FIRST_TIME_STEP_GOTO_LANDMARK;
               #ifdef DEBUG_CONTROL_TO_LANDMARK
