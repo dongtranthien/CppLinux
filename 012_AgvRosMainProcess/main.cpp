@@ -1352,6 +1352,7 @@ void ControlToLandmarkProcess(){
                 else{
                   angleRobotToPoint = 3.141592;
                 }
+                std::cout<<"0"<<std::endl;
               }
               else if(xRobot == xToRun){
                 if(yRobot < yToRun){
@@ -1360,21 +1361,26 @@ void ControlToLandmarkProcess(){
                 else{
                   angleRobotToPoint = 4.712388;
                 }
+                std::cout<<"1"<<std::endl;
               }
               else if((xRobot < xToRun)&&(yRobot < yToRun)){
-                angleRobotToPoint = atan((yToRun - yRobot)/(xToRun - xRobot));
+                angleRobotToPoint = atan(abs((yToRun - yRobot)/(xToRun - xRobot)));
+                std::cout<<"2"<<std::endl;
               }
               else if((xRobot > xToRun)&&(yRobot < yToRun)){
-                angleRobotToPoint = atan(abs(yToRun - yRobot)/(xToRun - xRobot));
+                angleRobotToPoint = atan(abs((yToRun - yRobot)/(xToRun - xRobot)));
                 angleRobotToPoint = 3.141592 - angleRobotToPoint;
+                std::cout<<"3"<<std::endl;
               }
               else if((xRobot > xToRun)&&(yRobot > yToRun)){
-                angleRobotToPoint = atan(abs(yToRun - yRobot)/abs(xToRun - xRobot));
+                angleRobotToPoint = atan(abs((yToRun - yRobot)/abs(xToRun - xRobot)));
                 angleRobotToPoint = 3.141592 + angleRobotToPoint;
+                std::cout<<"4"<<std::endl;
               }
               else if((xRobot < xToRun)&&(yRobot > yToRun)){
-                angleRobotToPoint = atan(abs(yToRun - yRobot)/abs(xToRun - xRobot));
+                angleRobotToPoint = atan(abs((yToRun - yRobot)/abs(xToRun - xRobot)));
                 angleRobotToPoint = 6.283185 - angleRobotToPoint;
+                std::cout<<"5"<<std::endl;
               }
             }
             
@@ -1393,29 +1399,29 @@ void ControlToLandmarkProcess(){
               deltaAngle_t = (3.14159265*2) - deltaAngleAbs;
             }
             if(deltaAngleAbs <= DegToRad(5)){
-              vThSet = 0.07;
+              vThSet = 0.04;
             }
-            else if(deltaAngleAbs <= DegToRad(10)){// 0.04
+            else if(deltaAngleAbs <= DegToRad(10)){// 0.02
+              vThSet = 0.06;
+            }
+            else if(deltaAngleAbs <= DegToRad(15)){// 0.02
+              vThSet = 0.08;
+            }
+            else if(deltaAngleAbs <= DegToRad(20)){// 0.03
               vThSet = 0.11;
             }
-            else if(deltaAngleAbs <= DegToRad(15)){// 0.05
-              vThSet = 0.15;
+            else if(deltaAngleAbs <= DegToRad(25)){// 0.03
+              vThSet = 0.14;
             }
-            else if(deltaAngleAbs <= DegToRad(20)){// 0.06
-              vThSet = 0.21;
-            }
-            else if(deltaAngleAbs <= DegToRad(25)){// 0.07
-              vThSet = 0.28;
-            }
-            else if(deltaAngleAbs <= DegToRad(30)){// 0.08
-              vThSet = 0.36;
+            else if(deltaAngleAbs <= DegToRad(30)){// 0.04
+              vThSet = 0.18;
             }
             else{
               vThSet = 0.4;
             }
             std::cout<<"Delta angle: " << std::to_string(deltaAngleAbs) << " - " << std::to_string(deltaAngle_t) << " - "<< std::to_string(vThSet) << " - "<< std::to_string(deltaAngle) << " - "<< std::to_string(deltaAnglePre) << " - " << std::to_string(angleRobotToPoint) << std::endl;
             //std::cout<<"vThSet: " << std::to_string(vThSet) << ""<<std::endl;
-            vThSet = 0.1;
+            //vThSet = 0.1;
             if((deltaAngleAbs < (0.017))||((deltaAngle*deltaAnglePre) <= 0)){
               vThControl = 0;
             }
@@ -1437,7 +1443,7 @@ void ControlToLandmarkProcess(){
             }
             deltaAnglePre = deltaAngle;
 
-            vxControl = 0.02;
+            vxControl = 0.05;
 
             std::cout << "Pos: " << std::to_string(xRobot) << "-" << std::to_string(yRobot) << "-" << std::to_string(xToRun) << "-" << std::to_string(yToRun) << std::endl;
             if(((xRobot >= (xToRun - 0.05))&&(xRobot <= (xToRun + 0.05)))&&((yRobot >= (yToRun - 0.05))&&(yRobot <= (yToRun + 0.05)))){
