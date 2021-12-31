@@ -58,6 +58,7 @@ void ControlToLandmarkProcess();
 std::string exec(const char* cmd);
 double DegToRad(double val);
 void ConfigLogFile();
+uint64_t micros();
 
 using json = nlohmann::json;
 
@@ -125,6 +126,7 @@ SocketTcpParameter InitTcpSocket(uint16_t port, uint16_t timeoutMs);
 int main(int argc, char **argv)
 {
   ros::init(argc, argv, "AgvRosMainProcess");
+  ConfigLogFile();
 
   //socketTcpParameter[SERVER_FD_COMMUNICATE_WITH_APP] = InitTcpSocket(PORT_COMMUNICATE_WITH_APP, 0);
   socketTcpParameter[SERVER_FD_COMMUNICATE_WITH_ROS_LAUNCH_CONTROL] = InitTcpSocket(PORT_COMMUNICATE_WITH_ROS_LAUNCH_CONTROL, 100);
@@ -170,7 +172,7 @@ void CommunicateWithApp(){
   int pathAndLandmarkDataLength = 0;
 
   #ifdef DEBUG
-    printf("\nTcpRunning...");
+    std::cout<<"TcpRunning..."<<std::endl;
   #endif
 
   // Creating socket file descriptor
@@ -203,7 +205,7 @@ void CommunicateWithApp(){
   }
   if (listen(server_fd, 3) < 0)
   {
-    printf("\nlisten...");
+    std::cout<<"listen..."<<std::endl;
     perror("listen");
     exit(EXIT_FAILURE);
   }
@@ -218,15 +220,15 @@ void CommunicateWithApp(){
       }
       else{
         isClientConnect = true;
-        std::cout << "CommunicateWithApp Connect\n";
+        std::cout << "CommunicateWithApp Connect"<<std::endl;
       }
     }
     else{
       valread = read( new_socket , buffer, 8019);
       if(valread != (-1)){
         buffer[valread] = 0;
-        printf("\nBuffer: %s\n",buffer );
-        printf("%d\n",valread );
+        std::cout<<"Buffer: "<<buffer<<std::endl;
+        std::cout<<std::to_string(valread)<<std::endl;
       }
 
       //TcpSocketSend(SERVER_FD_COMMUNICATE_WITH_APP, buffer, valread);
@@ -275,7 +277,7 @@ void CommunicateWithApp(){
             else{
               // Error
               isError = true;
-              std::cout << "Received initialpose error - angle";
+              std::cout << "Received initialpose error - angle"<<std::endl;
               break;
             }
             index_t++;
@@ -300,7 +302,7 @@ void CommunicateWithApp(){
               else{
                 // Error
                 isError = true;
-                std::cout << "Received initialpose error - posX";
+                std::cout << "Received initialpose error - posX"<<std::endl;
                 break;
               }
               index_t++;
@@ -325,7 +327,7 @@ void CommunicateWithApp(){
                 else{
                   // Error
                   isError = true;
-                  std::cout << "Received initialpose error - posY";
+                  std::cout << "Received initialpose error - posY"<<std::endl;
                   break;
                 }
                 index_t++;
@@ -337,7 +339,7 @@ void CommunicateWithApp(){
               else{
                 posY = std::stod(str_t);
 
-                std::cout << "initialpose - " + std::to_string(angle) + "-" + std::to_string(posX) + "-" + std::to_string(posY);
+                std::cout << "initialpose - " + std::to_string(angle) + "-" + std::to_string(posX) + "-" + std::to_string(posY)<<std::endl;
                 isSendInitialPose = true;
               }
             }
@@ -357,7 +359,7 @@ void CommunicateWithApp(){
           }
         }
         else if((strncmp("{\"responsePathAndLandmark\":\"Ok\"}", buffer, 32) == 0)){
-          std::cout<<"Received Ok.....\n";
+          std::cout<<"Received Ok....."<<std::endl;
           if(isReceivedDonePathAndLandmark){
             isReceivedDonePathAndLandmark = false;
 
@@ -375,9 +377,9 @@ void CommunicateWithApp(){
 
             //std::cout<<"\nData test: ";
             //std::cout<<pathAndLandmarkJson["pathAndLandmark"]["path"]["total"];
-            //std::cout<<"\n";
+            //std::cout<<""<<std::endl;
             //std::cout<<pathAndLandmarkJson["pathAndLandmark"]["path"]["dat"][0]["n"];
-            //std::cout<<"\n";
+            //std::cout<<""<<std::endl;
             if(isPathAndLandmarkJsonDataOk){
 
             }
@@ -409,14 +411,14 @@ void CommunicateWithApp(){
       else if(valread == 0){
         isClientConnect = false;
 
-        std::cout << "CommunicateWithApp Disconnect\n";
+        std::cout << "CommunicateWithApp Disconnect"<<std::endl;
       }
       else if(valread == (-1)){
         if(isReceivedPathAndLandmark){
           isReceivedPathAndLandmark = false;
           isReceivedDonePathAndLandmark = true;
 
-          std::cout << "\nRead data next......\n";
+          std::cout << "\nRead data next......"<<std::endl;
           
           send(new_socket, pathAndLandmarkData, pathAndLandmarkDataLength, 0);
         }
@@ -445,17 +447,17 @@ void CheckCommunicateWithRosLaunchControlDisconnect(){
         socketTcpParameter[SERVER_FD_COMMUNICATE_WITH_ROS_LAUNCH_CONTROL].IsConnect = true;
         socketTcpParameter[SERVER_FD_COMMUNICATE_WITH_ROS_LAUNCH_CONTROL].Socket = new_socket;
 
-        std::cout<<"RosLaunchControl Connect..\n";
+        std::cout<<"RosLaunchControl Connect.."<<std::endl;
       }
     }
     else{
       int valread = read( new_socket , buffer, 1024);
-      printf("%s\n",buffer );
-      printf("%d\n",valread );
+      std::cout<<buffer<<std::endl;
+      std::cout<<std::to_string(valread)<<std::endl;
 
       if(valread == 0){
         socketTcpParameter[SERVER_FD_COMMUNICATE_WITH_ROS_LAUNCH_CONTROL].IsConnect = false;
-        std::cout<<"RosLaunchControl Disconnect..\n";
+        std::cout<<"RosLaunchControl Disconnect.."<<std::endl;
         //while(1);
       }
     }
@@ -483,17 +485,17 @@ void CheckCommunicateWithNodeSendMap(){
         socketTcpParameter[SERVER_FD_COMMUNICATE_WITH_NODE_SEND_MAP].IsConnect = true;
         socketTcpParameter[SERVER_FD_COMMUNICATE_WITH_NODE_SEND_MAP].Socket = new_socket;
 
-        std::cout<<"NodeSendMap Connect..\n";
+        std::cout<<"NodeSendMap Connect.."<<std::endl;
       }
     }
     else{
       int valread = read( new_socket , buffer, 1024);
-      printf("%s\n",buffer );
-      printf("%d\n",valread );
+      std::cout<<buffer<<std::endl;
+      std::cout<<std::to_string(valread)<<std::endl;
 
       if(valread == 0){
         socketTcpParameter[SERVER_FD_COMMUNICATE_WITH_NODE_SEND_MAP].IsConnect = false;
-        std::cout<<"NodeSendMap Disconnect..\n";
+        std::cout<<"NodeSendMap Disconnect.."<<std::endl;
         //while(1);
       }
     }
@@ -521,7 +523,7 @@ void CheckCommunicateWithNodeSendLidarAndPos(){
         socketTcpParameter[SERVER_FD_COMMUNICATE_WITH_NODE_SEND_LIDAR_AND_POS].IsConnect = true;
         socketTcpParameter[SERVER_FD_COMMUNICATE_WITH_NODE_SEND_LIDAR_AND_POS].Socket = new_socket;
 
-        std::cout<<"NodeSendLidarAndPos Connect..\n";
+        std::cout<<"NodeSendLidarAndPos Connect.."<<std::endl;
       }
     }
     else{
@@ -531,7 +533,7 @@ void CheckCommunicateWithNodeSendLidarAndPos(){
 
       if(valread == 0){
         socketTcpParameter[SERVER_FD_COMMUNICATE_WITH_NODE_SEND_LIDAR_AND_POS].IsConnect = false;
-        std::cout<<"NodeSendLidarAndPos Disconnect..\n";
+        std::cout<<"NodeSendLidarAndPos Disconnect.."<<std::endl;
         //while(1);
       }
       else{
@@ -579,7 +581,7 @@ void CheckCommunicateWithNodeSendLidarAndPos(){
           if((!isError)||(lengthReceived >= 12)){
             std::string str_t;
             str_t = strArr_t;
-            //std::cout << "xRobot received: " << str_t << "\n";
+            //std::cout << "xRobot received: " << str_t << ""<<std::endl;
             xRobot = std::stof(str_t);
 
             lengthReceived = 0;
@@ -608,7 +610,7 @@ void CheckCommunicateWithNodeSendLidarAndPos(){
 
             if((!isError)||(lengthReceived >= 12)){
               str_t = strArr_t;
-              //std::cout << "yRobot received: " << str_t << "\n";
+              //std::cout << "yRobot received: " << str_t << ""<<std::endl;
               yRobot = std::stof(str_t);
 
               lengthReceived = 0;
@@ -637,26 +639,28 @@ void CheckCommunicateWithNodeSendLidarAndPos(){
 
               if((!isError)||(lengthReceived >= 12)){
                 str_t = strArr_t;
-                //std::cout << "yawRobot received: " << str_t << "\n";
+                //std::cout << "yawRobot received: " << str_t << ""<<std::endl;
                 yawRobot = std::stod(str_t);
                 if(yawRobot < 0){
                   yawRobot = 6.283185 + yawRobot;
                 }
 
-                //std::cout<< "Received robot position: " << xRobot << "-" << yRobot << "-" << yawRobot << "\n";
+                std::cout<<"YawRobot:"<<yawRobot<<std::endl;
+
+                //std::cout<< "Received robot position: " << xRobot << "-" << yRobot << "-" << yawRobot << ""<<std::endl;
                 isNewReceivedRobotData = true;
               }
               else{
-                std::cout<<"Received yaw robot failed\n";
+                std::cout<<"Received yaw robot failed"<<std::endl;
               }
               
             }
             else{
-              std::cout<<"Received y robot failed\n";
+              std::cout<<"Received y robot failed"<<std::endl;
             }
           }
           else{
-            std::cout<<"Received x robot failed\n";
+            std::cout<<"Received x robot failed"<<std::endl;
           }
         }
       }
@@ -726,6 +730,7 @@ void ControlDemo(){
 }
 
 void ControlToLandmarkProcess(){
+  uint64_t startTime = micros();
   while(true){
     switch(gotoLandmarkProcessStep){
       case GO_TO_LANDMARK_PROCESS_STEP_IDLE:{
@@ -738,7 +743,7 @@ void ControlToLandmarkProcess(){
               gotoLandmarkProcessStep = GO_TO_LANDMARK_PROCESS_STEP_RUN_TO_LANDMARK_FIRST_TIME;
               gotoLandmarkFirstTimeStep = GO_TO_LANDMARK_FIRST_TIME_STEP_CALCULATE_ANGLE_ROBOT_TO_LANDMARK;
               #ifdef DEBUG_CONTROL_TO_LANDMARK
-                std::cout<< "Position landmark to run: " << xToRun << "-" << yToRun << "\n";
+                std::cout<< "Position landmark to run: " << xToRun << "-" << yToRun << ""<<std::endl;
               #endif
             }
             else if(indexLMToRun != indexLMCurrent){
@@ -747,7 +752,7 @@ void ControlToLandmarkProcess(){
             }
           }
           else{
-            std::cout<<"Path and landmark error -> Not run to landmark\n";
+            std::cout<<"Path and landmark error -> Not run to landmark"<<std::endl;
           }
         }
         std::this_thread::sleep_for(std::chrono::milliseconds(200));
@@ -812,18 +817,18 @@ void ControlToLandmarkProcess(){
                 }
               }
 
-              std::cout << "yawRobot: " << yawRobot << "\n";
-              std::cout << "angleRobotToLandmark: " << angleRobotToLandmark << "\n";
-              std::cout << "deltaAngle: " << deltaAngle << "\n";
-              std::cout << "vThControl: " << vThControl << "\n";
-              std::cout << "Angle robot to landmark: " << (angleRobotToLandmark*360/6.283185) << "\n";
+              std::cout << "yawRobot: " << yawRobot << ""<<std::endl;
+              std::cout << "angleRobotToLandmark: " << angleRobotToLandmark << ""<<std::endl;
+              std::cout << "deltaAngle: " << deltaAngle << ""<<std::endl;
+              std::cout << "vThControl: " << vThControl << ""<<std::endl;
+              std::cout << "Angle robot to landmark: " << (angleRobotToLandmark*360/6.283185) << ""<<std::endl;
               gotoLandmarkFirstTimeStep = GO_TO_LANDMARK_FIRST_TIME_STEP_ROTATE_TO_LANDMARK;
             }
             break;
           }
           case GO_TO_LANDMARK_FIRST_TIME_STEP_ROTATE_TO_LANDMARK:{
             yawRobot = yawRobot + (vThControl*20/1000);
-            //std::cout << "yawRobot: " << yawRobot << "\n";
+            //std::cout << "yawRobot: " << yawRobot << ""<<std::endl;
 
             if(isNewReceivedRobotData){
               isNewReceivedRobotData = false;
@@ -861,13 +866,18 @@ void ControlToLandmarkProcess(){
             }
             
             double deltaAngle = abs((double)(yawRobot - angleRobotToLandmark));
-            //std::cout << "deltaAngle: " << deltaAngle << "\n";
+            //std::cout << "deltaAngle: " << deltaAngle << ""<<std::endl;
+            uint64_t elapsedTime = micros();
+            long long microseconds = elapsedTime - startTime;
+            startTime = elapsedTime;
+            std::cout << "GoFLM-" << yawRobot << "-" << angleRobotToLandmark << "-" << deltaAngle << "-" << microseconds <<std::endl;
             //if(deltaAngle < (1*3.141592/180)){
-            if(deltaAngle < (0.017)){
+            //if(deltaAngle < (0.017)){
+            if(false){
               vThControl = 0;
               gotoLandmarkFirstTimeStep = GO_TO_LANDMARK_FIRST_TIME_STEP_GOTO_LANDMARK;
               #ifdef DEBUG_CONTROL_TO_LANDMARK
-                std::cout << "Go to landmark first time - rotate done\n";
+                std::cout << "Go to landmark first time - rotate done"<<std::endl;
               #endif
             }
             break;
@@ -935,7 +945,7 @@ void ControlToLandmarkProcess(){
               vxControl = 0;
               vThControl = 0;
               #ifdef DEBUG_CONTROL_TO_LANDMARK
-                std::cout << "Go to landmark first time - Robot move to point of landmark done\n";
+                std::cout << "Go to landmark first time - Robot move to point of landmark done"<<std::endl;
               #endif
 
               int indexPath = pathAndLandmarkJson["pathAndLandmark"]["landmark"]["dat"][indexLMToRun]["i"];
@@ -954,7 +964,7 @@ void ControlToLandmarkProcess(){
                 y0 = y1;
               }
               else{
-                std::cout << "Position of landmark no in any path\n";
+                std::cout << "Position of landmark no in any path"<<std::endl;
                 gotoLandmarkProcessStep = GO_TO_LANDMARK_PROCESS_STEP_IDLE;
                 break;
               }
@@ -1025,12 +1035,14 @@ void ControlToLandmarkProcess(){
             double deltaAngle = abs((double)(yawRobot - angleLandmark));
             yawRobot = yawRobot + (vThControl*20/1000);
 
+            std::cout << "GoFLMA-" << yawRobot << "-" << angleLandmark << "-" << deltaAngle << ""<<std::endl;
+
             if(deltaAngle < (0.017)){
               vThControl = 0;
               gotoLandmarkProcessStep = GO_TO_LANDMARK_PROCESS_STEP_IDLE;
               indexLMCurrent = indexLMToRun;
               #ifdef DEBUG_CONTROL_TO_LANDMARK
-                std::cout << "Go to landmark first time - go to landmark done\n";
+                std::cout << "Go to landmark first time - go to landmark done"<<std::endl;
               #endif
             }
 
@@ -1086,12 +1098,12 @@ void ControlToLandmarkProcess(){
                 // If L1 -> X1 not connected -> Exit and adding sub path
                 if(isPathConnected){
                   isFindedPathToGoDestination = true;
-                  std::cout << "Finded path to go destination\n";
+                  std::cout << "Finded path to go destination"<<std::endl;
                   break;
                 }
                 else{
                   pathAddingCount++;
-                  std::cout << "Path adding: " << std::to_string(pathAddingCount) << "\n";
+                  std::cout << "Path adding: " << std::to_string(pathAddingCount) << ""<<std::endl;
                 }
               }
               else{
@@ -1159,7 +1171,7 @@ void ControlToLandmarkProcess(){
 
                     arrCheckRelationship[pathAddingCount][0] = arrPathIndexAdding[pathAddingCount - 1];
                     arrCheckRelationship[pathAddingCount][1] = indexPathToRun;
-                    //std::cout << std::to_string(arrCheckRelationship[pathAddingCount][1]) << "\n";
+                    //std::cout << std::to_string(arrCheckRelationship[pathAddingCount][1]) << ""<<std::endl;
 
                     uint8_t arrCheckRelationshipCount = pathAddingCount + 1;
                     // L1 -> X1 -> L2
@@ -1195,12 +1207,12 @@ void ControlToLandmarkProcess(){
 
                     if(!isNeedAddSubPath){
                       isFindedPathToGoDestination = true;
-                      std::cout << "Finded path to go destination\n";
+                      std::cout << "Finded path to go destination"<<std::endl;
                       break;
                     }
 
                     //pathAddingCount++;
-                    //std::cout << "Path adding: " << std::to_string(pathAddingCount) << "\n";
+                    //std::cout << "Path adding: " << std::to_string(pathAddingCount) << ""<<std::endl;
                     for(uint8_t i = (pathAddingCount - 1); i >= 0; i--){
                       arrPathIndexAdding[i]++;
                       if(arrPathIndexAdding[i] == totalPath){
@@ -1231,7 +1243,7 @@ void ControlToLandmarkProcess(){
             }
             
             if(isFindedPathToGoDestination){
-              std::cout << "Get path done, go to set point array on path\n";
+              std::cout << "Get path done, go to set point array on path"<<std::endl;
               pathIdArrRunningLength = pathAddingCount + 2;
               pathIdArrRunning[0] = indexPathCurrent;
               for(uint8_t i = 0; i < pathAddingCount; i++){
@@ -1244,7 +1256,7 @@ void ControlToLandmarkProcess(){
             }
             else{
               gotoLandmarkProcessStep = GO_TO_LANDMARK_PROCESS_STEP_IDLE;
-              std::cout<<"Not finded path to go destination\n";
+              std::cout<<"Not finded path to go destination"<<std::endl;
             }
             break;
           }
@@ -1257,7 +1269,7 @@ void ControlToLandmarkProcess(){
             temp = yToRun*1000;
             int32_t yToRun_t = temp;
 
-            std::cout << "Getpoint-Robot Position: " << std::to_string(xToRun) << std::to_string(yToRun) << "\n";
+            std::cout << "Getpoint-Robot Position: " << std::to_string(xToRun) << std::to_string(yToRun) << ""<<std::endl;
             if((xToRun_t == pathAndLandmarkJson["pathAndLandmark"]["path"]["dat"][pathIdArrRunning[indexPathIdRunning]]["a"][1][0])&&
                (yToRun_t == pathAndLandmarkJson["pathAndLandmark"]["path"]["dat"][pathIdArrRunning[indexPathIdRunning]]["a"][1][1])){
               for(uint8_t i = 0; i < pointSize; i++){
@@ -1275,7 +1287,7 @@ void ControlToLandmarkProcess(){
               pointArrRunningLength = pointSize;
             }
             else{
-              std::cout << "Not find point array to running\n";
+              std::cout << "Not find point array to running"<<std::endl;
               vxControl = 0;
               vThControl = 0;
               gotoLandmarkProcessStep = GO_TO_LANDMARK_PROCESS_STEP_IDLE;
@@ -1285,10 +1297,10 @@ void ControlToLandmarkProcess(){
             isNewReceivedRobotData = true;    // Set variable to calculate the angle robot to the point
             // Assign new point to running
             indexPointRunning = 0;
-            std::cout << "Getpoint-Point array running: " << std::to_string(pointArrRunning[indexPointRunning][0]) << "-" << std::to_string(pointArrRunning[indexPointRunning][1]) << "\n";
+            std::cout << "Getpoint-Point array running: " << std::to_string(pointArrRunning[indexPointRunning][0]) << "-" << std::to_string(pointArrRunning[indexPointRunning][1]) << ""<<std::endl;
             xToRun = double(pointArrRunning[indexPointRunning][0]/1000);
             yToRun = double(pointArrRunning[indexPointRunning][1]/1000);
-            std::cout << "Getpoint-Position to running: " << std::to_string(xToRun) << "-" << std::to_string(yToRun) << "\n";
+            std::cout << "Getpoint-Position to running: " << std::to_string(xToRun) << "-" << std::to_string(yToRun) << ""<<std::endl;
 
             // Based on path type to set different velocity
             std::string pathType = pathAndLandmarkJson["pathAndLandmark"]["path"]["dat"][pathIdArrRunning[indexPathIdRunning]]["n"];
@@ -1302,7 +1314,7 @@ void ControlToLandmarkProcess(){
               // Error
             }
   
-            std::cout << "Get point array done, go to running...\n";
+            std::cout << "Get point array done, go to running..."<<std::endl;
             gotoLandmarkStep = GO_TO_LANDMARK_STEP_RUNNING_PROCESS;
             break;
           }
@@ -1373,8 +1385,8 @@ void ControlToLandmarkProcess(){
             else{
               vThSet = 0.4;
             }
-            std::cout<<"Delta angle: " << std::to_string(deltaAngle) << " - " << std::to_string(deltaAngle_t) << "\n";
-            std::cout<<"vThSet: " << std::to_string(vThSet) << "\n";
+            std::cout<<"Delta angle: " << std::to_string(deltaAngle) << " - " << std::to_string(deltaAngle_t) << ""<<std::endl;
+            std::cout<<"vThSet: " << std::to_string(vThSet) << ""<<std::endl;
             vThSet = 0.1;
             if(deltaAngle < (0.017)){
               vThControl = 0;
@@ -1398,10 +1410,10 @@ void ControlToLandmarkProcess(){
 
             vxControl = 0.02;
 
-            //std::cout << "Pos: " << std::to_string(xRobot) << "-" << std::to_string(yRobot) << "-" << std::to_string(xToRun) << "-" << std::to_string(yToRun) << "\n";
+            //std::cout << "Pos: " << std::to_string(xRobot) << "-" << std::to_string(yRobot) << "-" << std::to_string(xToRun) << "-" << std::to_string(yToRun) << ""<<std::endl;
             if(((xRobot >= (xToRun - 0.05))&&(xRobot <= (xToRun + 0.05)))&&((yRobot >= (yToRun - 0.05))&&(yRobot <= (yToRun + 0.05)))){
               #ifdef DEBUG_CONTROL_TO_LANDMARK
-                std::cout << "Running to point finish, index point: " << std::to_string(indexPointRunning) <<"\n";
+                std::cout << "Running to point finish, index point: " << std::to_string(indexPointRunning) <<""<<std::endl;
               #endif
 
               indexPointRunning++;
@@ -1412,7 +1424,7 @@ void ControlToLandmarkProcess(){
                 vxControl = 0;
                 vThControl = 0;
                 if(indexPathIdRunning >= pathIdArrRunningLength){
-                  std::cout << "Go to landmark done!\n";
+                  std::cout << "Go to landmark done!"<<std::endl;
                   gotoLandmarkProcessStep = GO_TO_LANDMARK_PROCESS_STEP_IDLE;
                 }
                 else{
@@ -1423,7 +1435,7 @@ void ControlToLandmarkProcess(){
                 xToRun = pointArrRunning[indexPointRunning][0]/1000;
                 yToRun = pointArrRunning[indexPointRunning][1]/1000;
 
-                std::cout << "Running-Position to running: " << std::to_string(xToRun) << std::to_string(yToRun) << "\n";
+                std::cout << "Running-Position to running: " << std::to_string(xToRun) << std::to_string(yToRun) << ""<<std::endl;
               }
             }
             break;
@@ -1454,7 +1466,7 @@ SocketTcpParameter InitTcpSocket(uint16_t port, uint16_t timeoutMs){
   char buffer[1024] = {0};
 
   #ifdef DEBUG
-    printf("\nTcpRunning...");
+    std::cout<<"TcpRunning..."<<std::endl;
   #endif
 
   // Creating socket file descriptor
@@ -1495,7 +1507,7 @@ SocketTcpParameter InitTcpSocket(uint16_t port, uint16_t timeoutMs){
   }
   if (listen(server_fd, 3) < 0)
   {
-    printf("\nlisten...");
+    std::cout<<"\nlisten..."<<std::endl;
     perror("listen");
     exit(EXIT_FAILURE);
   }
@@ -1513,7 +1525,7 @@ std::string exec(const char* cmd) {
     }
     while (fgets(buffer.data(), buffer.size(), pipe.get()) != nullptr) {
         result += buffer.data();
-        std::cout << buffer.data();
+        //std::cout << buffer.data();
     }
     return result;
 }
@@ -1559,8 +1571,15 @@ void ConfigLogFile(){
     secondsStr = std::to_string(ltm->tm_sec);
   }
 
-  strFile = std::to_string(1900 + ltm->tm_year) + 
-            monthStr + dayStr + hourStr + minStr + secondsStr;
+  strFile = "./Log/" + std::to_string(1900 + ltm->tm_year) + 
+            monthStr + dayStr + hourStr + minStr + secondsStr + ".txt";
 
   std::freopen( strFile.c_str(), "w", stdout );
+}
+
+// Get time stamp in microseconds.
+uint64_t micros(){
+    uint64_t us = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::
+                  now().time_since_epoch()).count();
+    return us; 
 }
