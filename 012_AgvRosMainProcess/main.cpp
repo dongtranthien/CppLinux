@@ -2039,8 +2039,30 @@ void CalculateVelocityOfManualControl(uint8_t controlValue, uint32_t *leftValue,
 }
 
 void CalculateVelocityOfAutoControl(uint32_t *leftValue, uint32_t *rightValue){
-  *rightValue = (((2*vxControl) + (0.4*vThControl))/2);
-  *leftValue = (((2*vxControl) - (0.4*vThControl))/2);
+  double rightVelocity_t = (((2*vxControl) + (0.4*vThControl))/2);  // m/s
+  double leftVelocity_t = (((2*vxControl) - (0.4*vThControl))/2);   // m/s
+
+  double rightValueAbs_t = abs(rightVelocity_t*3183000*2);
+  double leftValueAbs_t = abs(leftVelocity_t*3183000*2);
+  if(rightVelocity_t < 0){
+    uint32_t temp = rightValueAbs_t;
+    temp = 4294967296 - temp;
+    *rightValue = temp;
+  }
+  else{
+    uint32_t temp = rightValueAbs_t;
+    *rightValue = temp;
+  }
+
+  if(leftVelocity_t < 0){
+    uint32_t temp = leftVelocity_t;
+    temp = 4294967296 - temp;
+    *leftValue = temp;
+  }
+  else{
+    uint32_t temp = leftVelocity_t;
+    *leftValue = temp;
+  }
 }
 
 std::string exec(const char* cmd) {
