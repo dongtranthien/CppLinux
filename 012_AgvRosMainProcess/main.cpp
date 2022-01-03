@@ -1058,6 +1058,23 @@ void ControlToLandmarkProcess(){
             double deltaAngleAbs = abs((double)(yawRobot - angleLandmark));
             yawRobot = yawRobot + (vThControl*20/1000);
 
+            if(yawRobot < angleLandmark){
+              if(deltaAngleAbs <= 3.141592){
+                vThControl = 0.1;
+              }
+              else{
+                vThControl = -0.1;
+              }
+            }
+            else{
+              if(deltaAngleAbs <= 3.141592){
+                vThControl = -0.1;
+              }
+              else{
+                vThControl = 0.1;
+              }
+            }
+
             std::cout << "GoFLMA-" << yawRobot << "-" << angleLandmark << "-" << deltaAngleAbs << ""<<std::endl;
 
             if(deltaAngleAbs < (0.017)){
@@ -1398,26 +1415,50 @@ void ControlToLandmarkProcess(){
             else{
               deltaAngle_t = (3.14159265*2) - deltaAngleAbs;
             }
-            if(deltaAngleAbs <= DegToRad(5)){
-              vThSet = 0.04;
+            if(deltaAngle_t <= DegToRad(10)){
+              vThSet = 0.05;
             }
-            else if(deltaAngleAbs <= DegToRad(10)){// 0.02
-              vThSet = 0.06;
-            }
-            else if(deltaAngleAbs <= DegToRad(15)){// 0.02
+            else if(deltaAngle_t <= DegToRad(20)){// 0.04
               vThSet = 0.08;
             }
-            else if(deltaAngleAbs <= DegToRad(20)){// 0.03
-              vThSet = 0.11;
+            else if(deltaAngle_t <= DegToRad(30)){// 0.04
+              vThSet = 0.12;
             }
-            else if(deltaAngleAbs <= DegToRad(25)){// 0.03
-              vThSet = 0.14;
-            }
-            else if(deltaAngleAbs <= DegToRad(30)){// 0.04
+            else if(deltaAngle_t <= DegToRad(40)){// 0.06
               vThSet = 0.18;
             }
+            else if(deltaAngle_t <= DegToRad(50)){// 0.07
+              vThSet = 0.25;
+            }
+            else if(deltaAngle_t <= DegToRad(60)){// 0.08
+              vThSet = 0.32;
+            }
+            else if(deltaAngle_t <= DegToRad(70)){// 0.09
+              vThSet = 0.40;
+            }
+            else if(deltaAngle_t <= DegToRad(80)){// 0.1
+              vThSet = 0.5;
+            }
             else{
-              vThSet = 0.4;
+              vThSet = 0.6;
+            }
+            if(deltaAngle_t <= DegToRad(5)){
+              vThSet = deltaAngle_t*1/1.3962;
+            }
+            else if(deltaAngle_t <= DegToRad(15)){
+              vThSet = deltaAngle_t*1.2/1.3962;
+            }
+            else if(deltaAngle_t <= DegToRad(30)){
+              vThSet = deltaAngle_t*1.6/1.3962;
+            }
+            else if(deltaAngle_t <= DegToRad(45)){
+              vThSet = deltaAngle_t*1.8/1.3962;
+            }
+            else if(deltaAngle_t <= DegToRad(80)){
+              vThSet = deltaAngle_t*2/1.3962;
+            }
+            else{
+              vThSet = 2.5;
             }
             std::cout<<"Delta angle: " << std::to_string(deltaAngleAbs) << " - " << std::to_string(deltaAngle_t) << " - "<< std::to_string(vThSet) << " - "<< std::to_string(deltaAngle) << " - "<< std::to_string(deltaAnglePre) << " - " << std::to_string(angleRobotToPoint) << std::endl;
             //std::cout<<"vThSet: " << std::to_string(vThSet) << ""<<std::endl;
@@ -1443,7 +1484,7 @@ void ControlToLandmarkProcess(){
             }
             deltaAnglePre = deltaAngle;
 
-            vxControl = 0.05;
+            vxControl = 0.08;
 
             std::cout << "Pos: " << std::to_string(xRobot) << "-" << std::to_string(yRobot) << "-" << std::to_string(xToRun) << "-" << std::to_string(yToRun) << std::endl;
             if(((xRobot >= (xToRun - 0.05))&&(xRobot <= (xToRun + 0.05)))&&((yRobot >= (yToRun - 0.05))&&(yRobot <= (yToRun + 0.05)))){
