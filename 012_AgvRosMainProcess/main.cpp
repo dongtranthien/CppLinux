@@ -1637,7 +1637,17 @@ void SerialCommunicate(){
 	
 
 	// Open hardware serial ports using the Open() method.
-	serial_port.Open("/dev/ttyUSB0");
+  bool connectedSerial = false;
+  while (!connectedSerial)
+  {
+    try{
+      serial_port.Open("/dev/ttyUSB0");
+      connectedSerial = true;
+    }
+    catch(const OpenFailed&){
+      connectedSerial = false;
+    }
+  }
 
 	// Set the baud rates.
 	using LibSerial::BaudRate;
