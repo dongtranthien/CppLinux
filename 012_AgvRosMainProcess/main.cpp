@@ -46,7 +46,7 @@
 #define PORT_COMMUNICATE_WITH_NODE_SEND_LIDAR_AND_POS 2006
 #define DEBUG_CONTROL_TO_LANDMARK
 #define CYCLE_TIME_SEND_MS				                    20
-//#define RUN_SIMULATE_WITH_TURTLE_BOT
+#define RUN_SIMULATE_WITH_TURTLE_BOT
 
 void ThreadStartSendMapNode();
 void CommunicateWithApp();

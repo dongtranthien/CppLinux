@@ -27,22 +27,31 @@ ROS_STOP_MAPPING = 5
 ROS_STOP_LOCALIZATION = 6
 
 def signal_handler(sig, frame):
+  global tcpRunning
   #os.system('kill -9 `sudo lsof -t -i:2007')
   print('You pressed Ctrl+C!')
   socketRunning.close()
-  try:
-    launchSimulate.shutdown()
-  except:
-    pass
-  try:
-    launchLocation.shutdown()
-  except:
-    pass
-  try:
-    launchGmaping.shutdown()
-  except:
-    pass
-  #os.system('killall -9 rosmaster')
+  tcpRunning = False
+  if statusRun == ROS_LAUNCH_LOCALIZATION:
+    try:
+      launchSimulate.shutdown()
+    except:
+      pass
+    try:
+      launchLocation.shutdown()
+    except:
+      pass
+    print("ROS_STOP_LOCALIZATION")
+  elif statusRun == ROS_LAUNCH_MAPPING:
+    try:
+      launchSimulate.shutdown()
+    except:
+      pass
+    try:
+      launchGmaping.shutdown()
+    except:
+      pass
+    print("ROS_STOP_MAPPING")
   sys.exit(0)
 def RunLaunch(link):
   print("Start1")
@@ -79,13 +88,15 @@ launchGmaping = None
 launchSaveMap = None
 launchLocation = None
 socketRunning = None
+tcpRunning = True
 def TcpConnect():
   global isSend
   global statusRun
   global socketRunning
+  global tcpRunning
 
   isConnected = False
-  while(True):
+  while(tcpRunning):
     if not isConnected:
       try:
         socketRunning = socket.socket()  
@@ -110,7 +121,19 @@ def TcpConnect():
           print("Disconnect Main process Ok")
         elif data == b'RosLaunchStartMapping':
           print(data)
+          print(statusRun)
           if statusRun == ROS_IDLE:
+            statusRun = ROS_START_MAPPING
+          elif statusRun == ROS_LAUNCH_LOCALIZATION:
+            try:
+              launchSimulate.shutdown()
+            except:
+              pass
+            try:
+              launchLocation.shutdown()
+            except:
+              pass
+            print("ROS_STOP_LOCALIZATION")
             statusRun = ROS_START_MAPPING
         elif data == b'RosLaunchStopMapping':
           print(data)
@@ -120,7 +143,18 @@ def TcpConnect():
           print(data)
           if statusRun == ROS_IDLE:
             statusRun = ROS_START_LOCALIZATION
-          else:
+          elif statusRun == ROS_LAUNCH_MAPPING:
+            try:
+              launchSimulate.shutdown()
+            except:
+              pass
+            try:
+              launchGmaping.shutdown()
+            except:
+              pass
+            print("ROS_STOP_MAPPING")
+            statusRun = ROS_START_LOCALIZATION
+          elif statusRun == ROS_LAUNCH_LOCALIZATION:
             try:
               launchSimulate.shutdown()
             except:
@@ -137,30 +171,18 @@ def TcpConnect():
             statusRun = ROS_STOP_LOCALIZATION
         else:
           print(data)
-    
-
-def test():
-  global isSend
-  global launchSimulate
-  global launchGmaping
-  global launchSaveMap
-  global launchLocation
-  global statusRun
-  while True:
-    time.sleep(1)
-
-signal.signal(signal.SIGINT, signal_handler)
 
 #os.system('killall -9 rosmaster')
 #time.sleep(2)
 #roscore = subprocess.Popen('roscore')
-
+threadRun1 = None
+threadRun2 = None
 if __name__ == "__main__":
+  signal.signal(signal.SIGINT, signal_handler)
   try:
-    threadRun = threading.Thread(target=TcpConnect, args=())
-    threadRun.start()
-    threadRun = threading.Thread(target=test, args=())
-    threadRun.start()
+    threadRun1 = threading.Thread(target=TcpConnect, args=())
+    threadRun1.daemon = True
+    threadRun1.start()
   except:
     print("Error: unable to start thread")
   
@@ -189,6 +211,7 @@ if __name__ == "__main__":
         pass
       statusRun = ROS_IDLE
       print("ROS_STOP_MAPPING")
+      statusRun = ROS_START_LOCALIZATION
     elif statusRun == ROS_START_LOCALIZATION:
       os.environ["TURTLEBOT3_MODEL"] = "burger"
       launchSimulate = RunLaunch("/home/idea/turtlebot3/catkin_ws/src/turtlebot3_simulations/turtlebot3_gazebo/launch/turtlebot3_world.launch")
