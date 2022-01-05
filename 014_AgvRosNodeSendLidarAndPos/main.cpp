@@ -33,6 +33,7 @@
 #include <stdexcept>
 #include <array>
 #include <sstream>
+#include <signal.h>
 #ifdef _WIN32
 #include <Windows.h>
 #else
@@ -64,10 +65,13 @@ uint8_t delayCounter = 0;
 int sockCommunicateWithMainProcess = 0;
 bool isConnectWithMainProcess = false;
 uint32_t timeStartWaitingReceived;
+bool isRunning = true;
 
 void RosRunning();
 void CommunicateWithApp();
 void CommunicateWithMainProcess();
+void CheckExitProgram();
+void ExitHandler(int s);
 void ProcessLaserScannerData(const sensor_msgs::LaserScan::ConstPtr& scan);
 SocketTcpParameter InitTcpSocket(uint16_t port, uint16_t timeoutMs);
 
@@ -79,14 +83,15 @@ int main(int argc, char **argv){
   std::thread t1(RosRunning);
   std::thread t2(CommunicateWithApp);
   std::thread t3(CommunicateWithMainProcess);
+  std::thread t4(CheckExitProgram);
   //std::thread t4(ThreadStartSendMapNode);
   
   t1.join();
   t2.join();
   t3.join();
+  t4.join();
   
-  ros::spin();
-
+  std::cout<<"\nProgram end...";
 }
 
 void RosRunning(){
@@ -105,7 +110,7 @@ void RosRunning(){
   timeStartWaitingReceived = ms_t.count();
 
   ros::Rate r(10.0);
-  while(1){
+  while(isRunning){
     ros::spinOnce();
     
     try{
@@ -130,7 +135,7 @@ void CommunicateWithApp(){
   int new_socket;
 
   socketTcpParameter[SERVER_FD_COMMUNICATE_WITH_APP].IsConnect = false;
-  while(true){
+  while(isRunning){
     if(!socketTcpParameter[SERVER_FD_COMMUNICATE_WITH_APP].IsConnect){
       if ((new_socket = accept(socketTcpParameter[SERVER_FD_COMMUNICATE_WITH_APP].ServerFd, 
                         (struct sockaddr *)&socketTcpParameter[SERVER_FD_COMMUNICATE_WITH_APP].Address, 
@@ -207,6 +212,7 @@ void CommunicateWithApp(){
       }
     }
   }
+  printf("Stop thread CommunicateWithApp\n");
 }
 
 void CommunicateWithMainProcess(){
@@ -251,7 +257,7 @@ void CommunicateWithMainProcess(){
 
   isConnectWithMainProcess = true;
 
-	while(true){
+	while(isRunning){
     valread = read( sock , buffer, 1024);
     std::cout<<"CommunicateWithMainProcess - Read: " + std::to_string(valread)+"\n";
     printf("%s\n", buffer);
@@ -291,6 +297,29 @@ void CommunicateWithMainProcess(){
       }
     }
   }
+  printf("Stop thread CommunicateWithMainProcess");
+}
+
+void CheckExitProgram(){
+  struct sigaction sigIntHandler;
+
+  sigIntHandler.sa_handler = ExitHandler;
+  sigemptyset(&sigIntHandler.sa_mask);
+  sigIntHandler.sa_flags = 0;
+
+  sigaction(SIGINT, &sigIntHandler, NULL);
+  while(isRunning){
+    usleep(100000);
+  }
+}
+
+void ExitHandler(int s){
+  printf("Caught signal %d\n",s);
+  close(socketTcpParameter[SERVER_FD_COMMUNICATE_WITH_APP].ServerFd);
+  close(sockCommunicateWithMainProcess);
+  printf("Stop tcp socket\n");
+  isRunning = false;
+  exit(1);
 }
 
 void ProcessLaserScannerData(const sensor_msgs::LaserScan::ConstPtr& scan){

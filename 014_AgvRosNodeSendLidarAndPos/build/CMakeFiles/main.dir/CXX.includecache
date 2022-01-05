@@ -73,6 +73,8 @@ array
 -
 sstream
 -
+signal.h
+-
 Windows.h
 -
 unistd.h

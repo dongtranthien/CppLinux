@@ -1,24 +1,24 @@
 Determining if the pthread_create exist failed with the following output:
-Change Dir: /home/idea/Documents/Code/Cpp/003_Ctrl_C_EventThread/build/CMakeFiles/CMakeTmp
+Change Dir: /home/idea/Documents/CppLinux/003_Ctrl_C_EventThread/build/CMakeFiles/CMakeTmp
 
-Run Build Command:"/usr/bin/make" "cmTC_b5741/fast"
-/usr/bin/make -f CMakeFiles/cmTC_b5741.dir/build.make CMakeFiles/cmTC_b5741.dir/build
-make[1]: Entering directory '/home/idea/Documents/Code/Cpp/003_Ctrl_C_EventThread/build/CMakeFiles/CMakeTmp'
-Building C object CMakeFiles/cmTC_b5741.dir/CheckSymbolExists.c.o
-/usr/bin/cc    -o CMakeFiles/cmTC_b5741.dir/CheckSymbolExists.c.o   -c /home/idea/Documents/Code/Cpp/003_Ctrl_C_EventThread/build/CMakeFiles/CMakeTmp/CheckSymbolExists.c
-Linking C executable cmTC_b5741
-/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_b5741.dir/link.txt --verbose=1
-/usr/bin/cc      -rdynamic CMakeFiles/cmTC_b5741.dir/CheckSymbolExists.c.o  -o cmTC_b5741 
-CMakeFiles/cmTC_b5741.dir/CheckSymbolExists.c.o: In function `main':
+Run Build Command:"/usr/bin/make" "cmTC_144d4/fast"
+/usr/bin/make -f CMakeFiles/cmTC_144d4.dir/build.make CMakeFiles/cmTC_144d4.dir/build
+make[1]: Entering directory '/home/idea/Documents/CppLinux/003_Ctrl_C_EventThread/build/CMakeFiles/CMakeTmp'
+Building C object CMakeFiles/cmTC_144d4.dir/CheckSymbolExists.c.o
+/usr/bin/cc    -o CMakeFiles/cmTC_144d4.dir/CheckSymbolExists.c.o   -c /home/idea/Documents/CppLinux/003_Ctrl_C_EventThread/build/CMakeFiles/CMakeTmp/CheckSymbolExists.c
+Linking C executable cmTC_144d4
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_144d4.dir/link.txt --verbose=1
+/usr/bin/cc      -rdynamic CMakeFiles/cmTC_144d4.dir/CheckSymbolExists.c.o  -o cmTC_144d4 
+CMakeFiles/cmTC_144d4.dir/CheckSymbolExists.c.o: In function `main':
 CheckSymbolExists.c:(.text+0x1b): undefined reference to `pthread_create'
 collect2: error: ld returned 1 exit status
-CMakeFiles/cmTC_b5741.dir/build.make:97: recipe for target 'cmTC_b5741' failed
-make[1]: *** [cmTC_b5741] Error 1
-make[1]: Leaving directory '/home/idea/Documents/Code/Cpp/003_Ctrl_C_EventThread/build/CMakeFiles/CMakeTmp'
-Makefile:126: recipe for target 'cmTC_b5741/fast' failed
-make: *** [cmTC_b5741/fast] Error 2
+CMakeFiles/cmTC_144d4.dir/build.make:97: recipe for target 'cmTC_144d4' failed
+make[1]: *** [cmTC_144d4] Error 1
+make[1]: Leaving directory '/home/idea/Documents/CppLinux/003_Ctrl_C_EventThread/build/CMakeFiles/CMakeTmp'
+Makefile:126: recipe for target 'cmTC_144d4/fast' failed
+make: *** [cmTC_144d4/fast] Error 2
 
-File /home/idea/Documents/Code/Cpp/003_Ctrl_C_EventThread/build/CMakeFiles/CMakeTmp/CheckSymbolExists.c:
+File /home/idea/Documents/CppLinux/003_Ctrl_C_EventThread/build/CMakeFiles/CMakeTmp/CheckSymbolExists.c:
 /* */
 #include <pthread.h>
 
@@ -34,22 +34,22 @@ int main(int argc, char** argv)
 }
 
 Determining if the function pthread_create exists in the pthreads failed with the following output:
-Change Dir: /home/idea/Documents/Code/Cpp/003_Ctrl_C_EventThread/build/CMakeFiles/CMakeTmp
+Change Dir: /home/idea/Documents/CppLinux/003_Ctrl_C_EventThread/build/CMakeFiles/CMakeTmp
 
-Run Build Command:"/usr/bin/make" "cmTC_46d29/fast"
-/usr/bin/make -f CMakeFiles/cmTC_46d29.dir/build.make CMakeFiles/cmTC_46d29.dir/build
-make[1]: Entering directory '/home/idea/Documents/Code/Cpp/003_Ctrl_C_EventThread/build/CMakeFiles/CMakeTmp'
-Building C object CMakeFiles/cmTC_46d29.dir/CheckFunctionExists.c.o
-/usr/bin/cc   -DCHECK_FUNCTION_EXISTS=pthread_create   -o CMakeFiles/cmTC_46d29.dir/CheckFunctionExists.c.o   -c /usr/share/cmake-3.10/Modules/CheckFunctionExists.c
-Linking C executable cmTC_46d29
-/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_46d29.dir/link.txt --verbose=1
-/usr/bin/cc  -DCHECK_FUNCTION_EXISTS=pthread_create    -rdynamic CMakeFiles/cmTC_46d29.dir/CheckFunctionExists.c.o  -o cmTC_46d29 -lpthreads 
+Run Build Command:"/usr/bin/make" "cmTC_a001c/fast"
+/usr/bin/make -f CMakeFiles/cmTC_a001c.dir/build.make CMakeFiles/cmTC_a001c.dir/build
+make[1]: Entering directory '/home/idea/Documents/CppLinux/003_Ctrl_C_EventThread/build/CMakeFiles/CMakeTmp'
+Building C object CMakeFiles/cmTC_a001c.dir/CheckFunctionExists.c.o
+/usr/bin/cc   -DCHECK_FUNCTION_EXISTS=pthread_create   -o CMakeFiles/cmTC_a001c.dir/CheckFunctionExists.c.o   -c /usr/share/cmake-3.10/Modules/CheckFunctionExists.c
+Linking C executable cmTC_a001c
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_a001c.dir/link.txt --verbose=1
+/usr/bin/cc  -DCHECK_FUNCTION_EXISTS=pthread_create    -rdynamic CMakeFiles/cmTC_a001c.dir/CheckFunctionExists.c.o  -o cmTC_a001c -lpthreads 
 /usr/bin/ld: cannot find -lpthreads
 collect2: error: ld returned 1 exit status
-CMakeFiles/cmTC_46d29.dir/build.make:97: recipe for target 'cmTC_46d29' failed
-make[1]: *** [cmTC_46d29] Error 1
-make[1]: Leaving directory '/home/idea/Documents/Code/Cpp/003_Ctrl_C_EventThread/build/CMakeFiles/CMakeTmp'
-Makefile:126: recipe for target 'cmTC_46d29/fast' failed
-make: *** [cmTC_46d29/fast] Error 2
+CMakeFiles/cmTC_a001c.dir/build.make:97: recipe for target 'cmTC_a001c' failed
+make[1]: *** [cmTC_a001c] Error 1
+make[1]: Leaving directory '/home/idea/Documents/CppLinux/003_Ctrl_C_EventThread/build/CMakeFiles/CMakeTmp'
+Makefile:126: recipe for target 'cmTC_a001c/fast' failed
+make: *** [cmTC_a001c/fast] Error 2
 
 

@@ -6,7 +6,7 @@
 
 #IncludeRegexTransform: 
 
-/home/idea/Documents/Code/Cpp/003_Ctrl_C_EventThread/main.cpp
+/home/idea/Documents/CppLinux/003_Ctrl_C_EventThread/main.cpp
 signal.h
 -
 stdlib.h

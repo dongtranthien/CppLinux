@@ -20,7 +20,9 @@ int main(int argc,char** argv)
 
    sigaction(SIGINT, &sigIntHandler, NULL);
 
-   pause();
+   while(1){
+     
+   }
 
    return 0;    
 }

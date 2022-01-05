@@ -1,7 +1,7 @@
-/home/idea/Documents/Code/Cpp/003_Ctrl_C_EventThread/build/CMakeFiles/install/strip.dir
-/home/idea/Documents/Code/Cpp/003_Ctrl_C_EventThread/build/CMakeFiles/edit_cache.dir
-/home/idea/Documents/Code/Cpp/003_Ctrl_C_EventThread/build/CMakeFiles/main.dir
-/home/idea/Documents/Code/Cpp/003_Ctrl_C_EventThread/build/CMakeFiles/rebuild_cache.dir
-/home/idea/Documents/Code/Cpp/003_Ctrl_C_EventThread/build/CMakeFiles/list_install_components.dir
-/home/idea/Documents/Code/Cpp/003_Ctrl_C_EventThread/build/CMakeFiles/install/local.dir
-/home/idea/Documents/Code/Cpp/003_Ctrl_C_EventThread/build/CMakeFiles/install.dir
+/home/idea/Documents/CppLinux/003_Ctrl_C_EventThread/build/CMakeFiles/install/strip.dir
+/home/idea/Documents/CppLinux/003_Ctrl_C_EventThread/build/CMakeFiles/edit_cache.dir
+/home/idea/Documents/CppLinux/003_Ctrl_C_EventThread/build/CMakeFiles/main.dir
+/home/idea/Documents/CppLinux/003_Ctrl_C_EventThread/build/CMakeFiles/rebuild_cache.dir
+/home/idea/Documents/CppLinux/003_Ctrl_C_EventThread/build/CMakeFiles/list_install_components.dir
+/home/idea/Documents/CppLinux/003_Ctrl_C_EventThread/build/CMakeFiles/install/local.dir
+/home/idea/Documents/CppLinux/003_Ctrl_C_EventThread/build/CMakeFiles/install.dir
