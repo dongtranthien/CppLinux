@@ -1,6 +1,0 @@
-NodeSendMap Connect..
-CommunicateWithApp Connect
-RosLaunchControl Connect..
-
-0
-RosLaunchControl Disconnect..

@@ -81,9 +81,11 @@ int main(int argc, char **argv){
   socketTcpParameter[SERVER_FD_COMMUNICATE_WITH_APP] = InitTcpSocket(PORT_COMMUNICATE_WITH_APP, 0);
 
   std::thread t1(RosRunning);
+  std::this_thread::sleep_for(std::chrono::milliseconds(100));
   std::thread t2(CommunicateWithApp);
   std::thread t3(CommunicateWithMainProcess);
   std::thread t4(CheckExitProgram);
+  std::this_thread::sleep_for(std::chrono::milliseconds(100));
   //std::thread t4(ThreadStartSendMapNode);
   
   t1.join();
@@ -95,7 +97,7 @@ int main(int argc, char **argv){
 }
 
 void RosRunning(){
-  usleep(4000000);
+  std::cout<<"Rosrunning...\n";
   
   ros::NodeHandle nh;
   ros::Subscriber scanSub;
@@ -112,13 +114,14 @@ void RosRunning(){
   ros::Rate r(10.0);
   while(isRunning){
     ros::spinOnce();
-    
+    std::cout<<"Ros running...\n";
     try{
       listener.lookupTransform("/map", "/base_link",  
                                ros::Time(0), transform);
     }
     catch (tf::TransformException ex){
       ROS_ERROR("%s",ex.what());
+      std::cout<<"Error ros\n";
       //ros::Duration(1.0).sleep();
     }
 
@@ -246,13 +249,13 @@ void CommunicateWithMainProcess(){
   {
     printf("CommunicateWithMainProcess - Invalid address/ Address not supported \n");
     while(1){
-      usleep(100000);
+      std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
   }
   
   while (connect(sock, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) > 0)
   {
-    usleep(100000);
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
   }
 
   isConnectWithMainProcess = true;
@@ -261,7 +264,7 @@ void CommunicateWithMainProcess(){
     valread = read( sock , buffer, 1024);
     std::cout<<"CommunicateWithMainProcess - Read: " + std::to_string(valread)+"\n";
     printf("%s\n", buffer);
-    //usleep(1000);
+    //std::this_thread::sleep_for(std::chrono::milliseconds(100));
     if((valread == 0)||(valread == (-1))){
       printf("CommunicateWithMainProcess - Reconnect...\n");
       close(sock);
@@ -278,7 +281,7 @@ void CommunicateWithMainProcess(){
 
       while (connect(sock, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0)
       {
-        usleep(100000);
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
         //printf("CommunicateWithMainProcess - Reconnect.....\n");
       }
       printf("CommunicateWithMainProcess - Reconnect Ok!\n");
@@ -309,7 +312,7 @@ void CheckExitProgram(){
 
   sigaction(SIGINT, &sigIntHandler, NULL);
   while(isRunning){
-    usleep(100000);
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
   }
 }
 
